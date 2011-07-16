@@ -1,0 +1,9 @@
+Arbiter
+=======
+
+The SBP utilizes a bus arbiter to reduce the chance of
+collissions.
+
+This directory contains the device schematic, PCB design and
+code for this device.
+
