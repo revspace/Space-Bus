@@ -5,7 +5,18 @@ Documentation:
 
 https://revspace.nl/RevelationSpace/SpaceBus
 
-Todo:
+Files
+=====
+
+scratch/	scratch files, experiments, sketches and what have you
+lib/sbp/	portable SBP library
+lib/avr485/	AVR driver for RS485, connects libsbp to the wire
+lib/pic485/	PIC driver for RS485, connects libsbp to the wire
+lib/ip/         IP driver, connects libsdp to (unix) ip sockets
+
+Todo
+====
+
 - write SBP (Space Bus Protocol) specification
 - document wiring/pinout
 - design hardware:
