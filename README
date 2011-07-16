@@ -1,0 +1,19 @@
+Space bus
+=========
+
+Documentation:
+
+https://revspace.nl/RevelationSpace/SpaceBus
+
+Todo:
+- write SBP (Space Bus Protocol) specification
+- document wiring/pinout
+- design hardware:
+   - psu
+   - arbiters
+   - simple SBP-enabled GPIO devices
+   - ethernet<->space bus gateway/router
+   - 'T-junction'
+
+and more...
+
