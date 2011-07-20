@@ -1,40 +1,57 @@
+/* sbp.c - space bus protocol library implementation
+ * 
+ * This library implementation consists of a great big old state machine.
+ * It starts out in SB_INIT, where it waits for an (unescaped) sync byte
+ * to make sure it is synchronised with the bus properly. Then it receives
+ * the message that comes after it by progressing through the SB_RECV
+ * states, and drops into SB_IDLE. From there new bus data will put it
+ * into SB_RECV_* again and new client data will put it into SB_XMIT_*
+ * states.
+ * 
+ * todo: see many comments, solve atomicity issues
+ */
+
+#include <inttypes.h>
+
 #include <avr/interrupt.h>
 #include <avr/io.h>
 
-#include "sb.h"
+#include "sbp.h"
 
 #define MAX_FRAME_SIZE	255	/* maximum frame size in bytes (unescaped) */
 #define BIT_LENGTH	 10	/* bit length in usec */
 
-#define SB_FLAG_ERROR	0x01
-#define SB_FLAG_ESCAPE	0x02
+#define SBP_FLAG_ERROR	0x01
+#define SBP_FLAG_ESCAPE	0x02
 
-#define SB_BYTE_SYNC	0b10101010
-#define SB_BYTE_ESCAPE	0b01010101	// todo: formalise
+#define SBP_BYTE_SYNC	0b10101010
+#define SBP_BYTE_ESCAPE	0b01010101	// todo: formalise
 
 /* internal state, do not rely on this from outside the library */
-static struct sb_state {
+// TODO: separate out frame info from state info
+static struct sbp_state {
 	enum {
 		/* device init*/
-		SB_INIT,
+		SBP_INIT,
 
 		/* bus idle */
-		SB_IDLE,
+		SBP_IDLE,
 
 		/* transmission stages */
-		SB_XMIT_HEADER,
-		SB_XMIT_PAYLOAD,
-		SB_XMIT_CHECKSUM,
+		SBP_XMIT_HEADER,
+		SBP_XMIT_PAYLOAD,
+		SBP_XMIT_CHECKSUM,
 
 		/* receive stages */
-		SB_RECV_HEADER,
-		SB_RECV_PAYLOAD,
-		SB_RECV_CHECKSUM,
+		SBP_RECV_HEADER,
+		SBP_RECV_PAYLOAD,
+		SBP_RECV_CHECKSUM,
 
-		SB_RECV_IGNORE		/* ignore rest of frame */
+		SBP_RECV_IGNORE		/* ignore rest of frame */
 	} state;
 
 	uint8_t flags;
+	uint8_t addr;
 
 	uint8_t *msg;			/* pointer to msg buffer */
 	uint16_t index;		/* index into current chunk (header, payload etc.) in bytes */
@@ -44,47 +61,50 @@ static struct sb_state {
 } _state;
 
 /* initialise space bus lib. */
-void sb_init() {
-	_state.state	= SB_INIT;
+// TODO: implement commands & control flow from comments
+void sbp_init(uint8_t address) {
+	_state.state	= SBP_INIT;
 	_state.flags	= 0;
-	_state.msg	= NULL;
+	_state.msg	= 0;
 	_state.size	= 0;
 	_state.index	= 0;
 	_state.flags	= 0;
-	_state.header	= { 0, 0, 0, 0, 0, 0 };
+
+	// fill header
 
 	// set up pin change interrupt
 	// set up USI timer
 }
 
 /* is transmission busy? */
-uint8_t sb_idle() {
-	return _state.state == SB_IDLE;
+uint8_t sbp_idle() {
+	return _state.state == SBP_IDLE;
 }
 
-/* send a message. buffer must remain valid until sb_busy() returns false. */
-void sb_send(uint16_t size, const uint8_t *msg) {
-	if(_state.state == SB_IDLE)
-		_state.state	= SB_XMIT_HEADER;
+/* send a message. buffer must remain valid until sbp_busy() returns false. */
+void sbp_send(uint16_t size, const uint8_t *msg) {
+	if(_state.state == SBP_IDLE) {
+		_state.state	= SBP_XMIT_HEADER;
 		_state.msg	= msg;
 		_state.size	= size;
 		_state.index	= 0;
-
-		// load sync byte
+		
+		// prepare header
 		// disable pin change interrupt
 		// enable timers
 	}
 }
 
 /* pin change interrupt for data in pin */
+// TODO: implement commands & control flow from comments
 ISR(PCINT0_vect) {
 	switch(_state.state) {
-		case SB_INIT:
+		case SBP_INIT:
 			// detect unescaped sync, go to recv header
 			break;
 
-		case SB_IDLE:
-			// if sync go to recv header
+		case SBP_IDLE:
+			// detect unescaped sync, go to recv header
 			break;
 
 		default:
@@ -96,51 +116,53 @@ ISR(PCINT0_vect) {
 }
 
 /* USI overflow: one byte has been read */
+// TODO: implement commands & control flow from comments
 ISR(USI_OVF_vect) {
 	switch(_state.state) {
 		/* we skip init and idle, they use PCINT0 to sync with the bus */
 
-		case SB_XMIT_HEADER:
+		case SBP_XMIT_HEADER:
 			// transmit byte of header
 			// end of header? if so, start transimitting payload
 			break;
 
-		case SB_XMIT_PAYLOAD:
+		case SBP_XMIT_PAYLOAD:
 			// transmit byte of payload
 			// calculate checksum
 			// end of payload? if so, start transmitting checksum
 			break;
 
-		case SB_XMIT_CHECKSUM:
+		case SBP_XMIT_CHECKSUM:
 			// transmit checksum byte
 			// go to idle
 			break;
 
 		/* receive stages */
-		case SB_RECV_HEADER:
+		case SBP_RECV_HEADER:
 			// read in byte of header
 			// end of header? if address match, start reading in payload
 			// otherwise ignore rest of message
 			break;
 
-		case SB_RECV_PAYLOAD:
+		case SBP_RECV_PAYLOAD:
 			// read in byte of payload
 			// calculate checksum
 			// end of payload? start reading in checksum
 			break;
 
-		case SB_RECV_CHECKSUM:
+		case SBP_RECV_CHECKSUM:
 			// read in checksum
 			// matches own calculation? signal 'upstairs'
 			// otherwise, signal error
 			// go to bus idle
 			break;
 
-		case SB_RECV_IGNORE:
+		case SBP_RECV_IGNORE:
 			// count down to end of message + payload byte
 			// done? go to idle
 			break;
 
 		default:
 			return;
+	}
 }
