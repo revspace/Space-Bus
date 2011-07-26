@@ -8,12 +8,13 @@ https://revspace.nl/RevelationSpace/SpaceBus
 Files
 =====
 
-scratch/	scratch files, experiments, sketches and what have you
-lib/sbp/	portable SBP library
-lib/avr485/	AVR driver for RS485, connects libsbp to the wire
-lib/pic485/	PIC driver for RS485, connects libsbp to the wire
-lib/ip/         IP driver, connects libsdp to (unix) ip sockets
-infra/arbiter/	bus arbiter code
+scratch/		scratch files, experiments, sketches and what have you
+scratch/tinyhack	First, hacky, hardware-specific implementation as a proof-of-concept on an ATTiny85
+lib/sbp/		portable SBP library
+lib/avr485/		AVR driver for RS485, connects libsbp to the wire
+lib/pic485/		PIC driver for RS485, connects libsbp to the wire
+lib/ip/			IP driver, connects libsdp to (unix) ip sockets
+infra/arbiter/		bus arbiter code
 
 Todo
 ====

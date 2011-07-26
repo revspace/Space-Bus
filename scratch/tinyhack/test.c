@@ -10,14 +10,13 @@
 #define SBP_ADDR 0x10
 
 int main(void) {
-	const uint8_t  msg[]		= "hello world";
-	const uint16_t msg_size	= 11;
+	const uint8_t  msg[]		= "hello world";	/* message to send */
+	const uint16_t msg_size	= 11;			/* length of same */
 
 	/* init sbp */
 	sbp_init(SBP_ADDR);
-	
-	/* keep sending the same message */
-	while(1)
+
+	while(1)		/* keep sending the same message */
 		if(sbp_idle())
 			sbp_send(msg_size, msg);
 		else
