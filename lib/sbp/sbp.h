@@ -23,16 +23,24 @@ struct hw_callbacks {
 	uint8_t (*i_receive_byte)();
 } ;
 
-/* this struct contains a pointer to a buffer to store a frame, and its
- * size.
+/* this struct works in the same way but contains callbacks between
+ * protocol and application
  */
-
-struct sbp_buffer {
+struct protocol_callbacks {
 	void (*u_frame_received)();
 	void (*u_frame_sent)();
 
 	void (*d_send_frame)();
 	void (*d_recv_frame)();
+} ;
+
+/* this struct contains a pointer to a buffer to store a frame, and its
+ * size.
+ */
+
+struct sbp_buffer {
+	uint8_t	*buf;
+	uint16_t	 size;
 } ;
 
 #define _SBP_H

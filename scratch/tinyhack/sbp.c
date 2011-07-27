@@ -16,18 +16,8 @@
 #include <avr/interrupt.h>
 #include <avr/io.h>
 
+#include "sbp_config.h"
 #include "sbp.h"
-
-#define SBP_BIT_LENGTH		10	/* bit length in usec */
-
-#define SBP_HEADER_LENGTH	 6	/* length of protocol header */
-#define SBP_CHECKSUM_LENGTH	 1	/* same for checksum */
-
-#define SBP_FLAG_ERROR	0x01
-#define SBP_FLAG_ESCAPE	0x02
-
-#define SBP_BYTE_SYNC	0b10101010	/* synchronisation byte */
-#define SBP_BYTE_ESCAPE	0b01010101	/* escape byte. TODO: formalise */
 
 typedef enum {
 	/* device init*/
@@ -52,32 +42,73 @@ typedef enum {
 /* internal state, do not rely on this from outside the library */
 /* TODO: separate out frame info from state info */
 static struct {
-	sbp_state_t	state;
+	sbp_state_t	state;	/* current state of interface */
 
-	uint16_t	index, size;
-	uint8_t	flags;
-	uint8_t	address;
+	uint16_t	index;	/* index into frame (0-5 is header, rest is payload) */
+	uint16_t	size;
+	
+	uint8_t	flags;		/* some housekeeping data. can contain any of the SBP_FLAG_* flags. */
+	uint8_t	address;	/* this node's address */
 
-	sbp_frame_t	frame;
+	sbp_frame_t	frame;		/* a buffer for the frame */
 } _data;
+
+/* TODO: fill in these four */
+/* (temporarily) disable the USI */
+void disable_usi() {
+	
+}
+
+/* (temporarily) enable the USI */
+void enable_usi() {
+	
+}
+
+
+/* (temporarily) disable timer 0's match interrupt */
+void disable_tim0_int() {
+	
+}
+
+/* (temporarily) enable timer 0's match interrupt */
+void enable_tim0_int() {
+	
+}
+
 
 /* initialise space bus lib. */
 /* TODO: implement commands & control flow from comments */
 void sbp_init(uint8_t address) {
-	_data.state	= SBP_INIT;	/* first we must sync to the bus */
+	/* misc initalisation */
 	_data.flags	= 0;		/* no error, no overflow */
 	_data.frame.msg	= 0;		/* no message yet... */
-	_data.frame.length	= 0;		/* ...so size is 0 */
+	_data.frame.length	= 0;	/* ...so size is 0 */
 	_data.index	= 0;
 	_data.address	= address;
 
 	/* set up pin change interrupt */
-	/* set up timer 0 for USI */
+	
+	/* set up timer 0 for USI & sync */
+	
+	/* set up USI */
+	
+	/* transition to SBP_INIT */
+	_data.state	= SBP_INIT;	/* first we must sync to the bus */
+	disable_usi();
+	enable_tim0_int();
 }
 
 /* is transmission busy? */
-uint8_t sbp_idle() {
+uint8_t sbp_idle_get() {
 	return _data.state == SBP_IDLE;
+}
+
+uint8_t sbp_error_get() {
+	return data.flags & SBP_FLAG_ERROR;
+}
+
+void sbp_error_clear() {
+	data.flags &= ~SBP_FLAG_ERROR;
 }
 
 /* send a message. buffer must remain valid until sbp_busy() returns false. */
@@ -97,22 +128,23 @@ void sbp_send(uint8_t dst, uint8_t type, uint16_t length, const uint8_t *msg) {
 
 		_data.frame.checksum	= 0x0;	/* checksum is computed on the fly during transmission */
 
-		// disable PCINT0
-		// enable USI, load first byte
+		/* disable PCINT0 */
+		/* enable USI, load first byte */
 	}
 }
 
 /* pin change interrupt for data in pin
- * TODO: implement commands & control flow from comments
- * TODO: most of this needs to be in the timer interrupt
+ * synchronises the per-bit timer to the bus
  */
 ISR(PCINT0_vect) {
 	/* sync USI clock */
 	TCNT0 = SBP_HALF_BIT_TIMER;
 }
 
-/* TODO: wrong vector */
-ISR(TIM0_vect) {
+/* timer interrupt for per-bit timer
+ * only enabled when in IDLE or INIT states - this interrupt provides bus synchronisation in software for these
+ */
+ISR(TIM0_COMPA_vect) {
 	switch(_data.state) {
 		case SBP_INIT:
 			/* this state makes sure the device is synchronised to the bus first by receiving on a per-bit basis and checking for the sync byte */
@@ -224,6 +256,8 @@ ISR(USI_OVF_vect) {
 
 		case SBP_XMIT_PAYLOAD:
 			/* transmit byte of payload */
+			USIBR = _data.frame.payload[_data.index - SBP_HEADER_LENGTH];
+			
 			/* calculate checksum */
 			if(_data.index == _data.size + SBP_HEADER_LENGTH) {
 				_data.state = SBP_XMIT_CHECKSUM;
@@ -293,9 +327,9 @@ ISR(USI_OVF_vect) {
 			break;
 
 		case SBP_RECV_PAYLOAD:
-			USIBR = 
-		
 			/* read in byte of payload */
+			_data.index++;
+
 			/* calculate checksum */
 			/* end of payload? start reading in checksum */
 			break;
@@ -304,12 +338,18 @@ ISR(USI_OVF_vect) {
 			/* read in checksum */
 			/* matches own calculation? signal new frame */
 			/* otherwise, signal error */
-			/* go to bus idle */
+			
+			/* transition to SBP_IDLE */
+			_data.state = SBP_IDLE;
 			break;
 
 		case SBP_RECV_IGNORE:
-			/* count down to end of message + payload byte */
-			/* done? go to idle */
+			_data.index++;
+
+			if(_data.index == _data.size + SBP_HEADER_LENGTH + SBP_CHECKSUM_LENGTH) {
+				/* transition to SBP_IDLE */
+				_data.state = SBP_IDLE;
+			}
 			break;
 
 		default:

@@ -18,17 +18,40 @@
 static struct {
 	struct hw_callbacks *cb;
 	uint8_t state;
-	uint8_t buf[2];
+	uint8_t buf;
 } t485_data;
 
-uint8_t hton(uint8_t b) {
+uint8_t bit_reverse(uint8_t b) {
 	uint8_t i, buf = 0x0;
 
 	for(i=0; i<=7; i++)
 		if(b & (1 << i)) buf |= (1 << (7-i));
-	
+
 	return b;
 }
+
+/* direct hardware interfacing convenience functions
+ * do what they say on the tin
+ */
+inline void timer_on() {
+}
+
+inline void timer_off() {
+}
+
+inline void usi_on() {
+}
+
+inline void usi_off() {
+}
+
+inline void pcint_on() {
+}
+
+inline void pcint_off() {
+}
+
+/* interface functions */
 
 void tiny485(struct hw_callbacks *cb) {
 	/* keep local copy of callback struct */
@@ -36,52 +59,72 @@ void tiny485(struct hw_callbacks *cb) {
 
 	/* (u_* structs have already been filled in by upper layer) */
 
-	cb->d_begin_transmission= &tiny485_begin_transmission;
-	cb->d_end_transmission	= &tiny485_end_transmission;
+	cb->d_begin_transmission= &t485_begin_transmission;
+	cb->d_end_transmission	= &t485_end_transmission;
 
-	cb->d_send_byte		= &tiny485_send_byte;
-	cb->d_receive_byte	= &tiny485_receive_byte;
+	cb->d_send_byte		= &t485_send_byte;
+	cb->d_receive_byte	= &t485_receive_byte;
+	
+	/* other init */
+	/* TODO: sane initial values for pins used */
+	/* TODO: initialise timer, usi, pcint */
 }
 
-void t485_begin_transmission() {
-	/* turn on DE, turn off pcint */
+inline void t485_begin_transmission() {
+	usi_on();
+	pcint_off();
 }
 
-void t485_end_transmission() {
-	/* turn off DE, turn on pcint */
+inline void t485_end_transmission() {
+	usi_off();
+	pcint_on();
 }
 
-
-uint8_t t485_receive_byte() {
-	return buf[0];
+inline uint8_t t485_receive_byte() {
+	return bit_reverse(t485_data.buf);
 }
 
 void t485_send_byte(uint8_t b) {
-	b = hton(b);
+	b = bit_reverse(b);
 
 	USIBR = HIGH & START_BIT & (b >> 2);
 	buf = (b << 3) | (STOP_BIT);		/* store next byte to send it when necessary */
 
 	t485_data.state = T485_STATE_XMIT;
-
 	timer_on();
-	pcint_off();
 	usi_on();
 }
+
+
+/* interrupt vectors */
 
 INT(PCINT0_vect) {
-	usi_on();
-	pcint_off();
+	if(USI_PORT & _BV(DIN)) {
+		/* sync the timer - 3/2 to skip start bit */
+		TCNT0 = (3 * T485_BIT_TIMER) / 2;
+		t485_data.state = 0
+		pcint_off();
+		timer_on();
+		usi_on();
+	}
 }
 
-INT(TIM0_COMPA_VECT) {
-	if(t485_data.state & T84_STATE_XMIT)
-		if(t485_data.state & T84_STATE_BYTE2) {
-			timer_off();
+INT(USI_OVF_vect) {
+	if(t485_data.state & T485_STATE_XMIT) {
+		/* if we're transmitting, this means we need to either... */
+		if(t485_data.state & T485_STATE_BYTE2) {
+			timer_off();		/* stop transmitting */
 			usi_off();
-			pcint_on();
 			t485_data.state = 0;
 		} else {
-			USIBR = buf;
+			USIBR = t485_data.buf;	/* or send another byte */
+			t485_data.state |= T485_STATE_BYTE2;
 		}
+	} else {
+		usi_off();
+		timer_off();
+		/* load USI buffer into buf */
+		t485_data.buf = USIBR;
+		pcint_on();
+	}
 }

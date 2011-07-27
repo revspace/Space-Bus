@@ -10,7 +10,7 @@ all : test.hex
 test.hex: test.elf
 	$(OBJCOPY) -j .text -O ihex test.elf test.hex
 
-test.elf: test.c sbp.c sbp.h
+test.elf: test.c sbp.c sbp.h sbp_config.h
 	$(CC) $(CFLAGS) -o test.elf test.c sbp.c
 
 program: test.hex
