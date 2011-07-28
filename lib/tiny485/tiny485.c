@@ -31,24 +31,30 @@ uint8_t bit_reverse(uint8_t b) {
 }
 
 /* direct hardware interfacing convenience functions
- * do what they say on the tin
+ * do what they say on the tin - see ATTiny85 datasheet for details
  */
 inline void timer_on() {
+	OCR0B |= 0b00000101;	/* TODO: work out clock values etc. */
 }
 
 inline void timer_off() {
+	OCR0B &= 0b11111000;
 }
 
 inline void usi_on() {
+	USICR |= 0b00010100;
 }
 
 inline void usi_off() {
+	USICR &= 0b11000011;
 }
 
 inline void pcint_on() {
+	GIMSK |= 0b00100000;
 }
 
 inline void pcint_off() {
+	GIMSK &= 0b11011111;
 }
 
 /* interface functions */
@@ -64,7 +70,7 @@ void tiny485(struct hw_callbacks *cb) {
 
 	cb->d_send_byte		= &t485_send_byte;
 	cb->d_receive_byte	= &t485_receive_byte;
-	
+
 	/* other init */
 	/* TODO: sane initial values for pins used */
 	/* TODO: initialise timer, usi, pcint */

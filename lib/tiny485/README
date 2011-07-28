@@ -1,7 +1,6 @@
 This library is meant for the Atmel ATTiny85 microcontroller and provides:
 	- Interaction with a MAX485 compatible RS485 line driver
-	- Transmission of bytes using the UART protocol
-	- Clock recovery etc.
+	- Implementation of the SBLP up to byte-level framing
 
 using these features of the MCU:
 	- the USI DIN pin
@@ -9,6 +8,3 @@ using these features of the MCU:
 	- a GPIO pin for data enable
 	- timer/counter 0 and its interrupts
 	- the pin change interrupt 0
-
-To use it, you must define 
-
