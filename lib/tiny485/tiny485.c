@@ -4,6 +4,8 @@
 #include "sbp.h"
 #include "tiny485.h"
 
+#define T485_BIT_TIMER 104
+
 /* the USI is 8 bits wide, the UART protocol uses 10 or so bits, so
  * we split them up and use some magic (as per application note AVR307)
  */
@@ -33,14 +35,19 @@ uint8_t bit_reverse(uint8_t b) {
 /* direct hardware interfacing convenience functions
  * do what they say on the tin - see ATTiny85 datasheet for details
  */
+
+/* timer0 is switched by connecting/disconnecting the prescaler
+ * (clk_io / 8) to/from the timer0 clock.
+ */
 inline void timer_on() {
-	OCR0B |= 0b00000101;	/* TODO: work out clock values etc. */
+	TCCR0B |= 0b00000010;
 }
 
 inline void timer_off() {
-	OCR0B &= 0b11111000;
+	TCCR0B &= 0b11111000;
 }
 
+/* the USI is switched by turning the entire USI and its clock on/off */
 inline void usi_on() {
 	USICR |= 0b00010100;
 }
@@ -49,6 +56,7 @@ inline void usi_off() {
 	USICR &= 0b11000011;
 }
 
+/* the pin-change interrupt is switched by switching its mask bit */
 inline void pcint_on() {
 	GIMSK |= 0b00100000;
 }
@@ -73,7 +81,19 @@ void tiny485(struct hw_callbacks *cb) {
 
 	/* other init */
 	/* TODO: sane initial values for pins used */
-	/* TODO: initialise timer, usi, pcint */
+
+	/* initialise timer */
+	TCCR0A = 0b00000010;		/* CTC mode */
+	TCCR0B = 0b00000010;		/* prescaler = 8 */
+	OCR0A  = T485_BIT_TIMER;	/* interrupt every bit length */
+
+	/* initialise USI */
+	USICR = 0b01010000;
+
+	/* initialise pin-change interrupt */
+	PCMSK = 0b00000001;		/* enable for PCINT0 (DI) pin */
+	GIMSK = 0b00100000;		/* enable in general */
+
 }
 
 inline void t485_begin_transmission() {
@@ -106,8 +126,8 @@ void t485_send_byte(uint8_t b) {
 
 INT(PCINT0_vect) {
 	if(USI_PORT & _BV(DIN)) {
-		/* sync the timer - 3/2 to skip start bit */
-		TCNT0 = (3 * T485_BIT_TIMER) / 2;
+		/* sync the timer - sample 1/2 bit length later */
+		TCNT0 = T485_BIT_TIMER / 2;
 		t485_data.state = 0
 		pcint_off();
 		timer_on();

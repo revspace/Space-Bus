@@ -9,7 +9,6 @@ Files
 =====
 
 scratch/		scratch files, experiments, sketches and what have you
-scratch/tinyhack	First, hacky, hardware-specific implementation as a proof-of-concept on an ATTiny85
 lib/sbp/		portable SBP library
 lib/avr485/		AVR driver for RS485, connects libsbp to the wire
 lib/pic485/		PIC driver for RS485, connects libsbp to the wire
