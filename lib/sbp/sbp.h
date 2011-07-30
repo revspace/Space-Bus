@@ -7,6 +7,12 @@
 
 #include "inttypes.h"
 
+/** Contains an SBP frame to be passed between layers. */
+struct sbp_frame {
+	uint16_t	 payload_size;
+	uint8_t	*payload;
+} ;
+
 /** SBLP/HW communication struct
  *
  * This struct contains the callbacks used for communication between the
@@ -33,12 +39,6 @@ struct protocol_callbacks {
 
 	void (*d_send_frame)(struct sbp_frame frame);
 	void (*d_recv_frame)();
-} ;
-
-/** Contains an SBP frame to be passed between layers. */
-struct sbp_frame {
-	uint16_t	 payload_size;
-	uint8_t	*payload;
 } ;
 
 #define _SBP_H
