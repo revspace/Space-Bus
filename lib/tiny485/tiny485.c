@@ -69,7 +69,7 @@ inline void usi_on() {
 
 /** Turn the USI off. */
 inline void usi_off() {
-	USICR &= 0b11000011;
+//	USICR &= 0b11000011;
 }
 
 /** Turn the pin-change interrupt on.
@@ -114,14 +114,14 @@ void t485_end_transmission() {
 void t485_send_byte(uint8_t b) {
 	b = bit_reverse(b);
 
-	USIDR = HIGH & START_BIT & (b >> 2);
+	USIDR = (b >> 1);
 	USISR = 0x0B;	/* wait for 16-11 = 5 bits (half the message) */
 
-	t485_data.buf = (b << 3) | (STOP_BIT);	/* store next byte to send it when necessary */
+	t485_data.buf = (b << 4) | 0x0F;
 	t485_data.state = T485_STATE_XMIT;
 
-	timer_on();
 	usi_on();
+	timer_on();
 }
 
 void tiny485(struct hw_callbacks *cb) {
@@ -181,14 +181,16 @@ ISR(USI_OVF_vect) {
 	if(t485_data.state & T485_STATE_XMIT) {
 		/* if we're transmitting, this means we need to either... */
 		if(t485_data.state & T485_STATE_BYTE2) {
-			timer_off();		/* ...stop transmitting... */
+			USISR |= _BV(USIOIF);	/* clear overflow flag */
 			usi_off();
+			timer_off();		/* ...stop transmitting... */
 			t485_data.state = 0;
 
 			/* ...and notify the layer above... */
 			sei();
 			(*(t485_data.cb->u_byte_sent))(t485_data.cb->c_data);
 		} else {
+			USISR |= _BV(USIOIF);	/* clear overflow flag */
 			USIDR = t485_data.buf;	/* ...or send another byte */
 			USISR = 0x0B;		/* wait for 16-11 = 5 bits (half the message) */
 			t485_data.state |= T485_STATE_BYTE2;
