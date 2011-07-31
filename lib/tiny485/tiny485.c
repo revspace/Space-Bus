@@ -152,6 +152,7 @@ void tiny485(struct hw_callbacks *cb) {
 	/* initialise pin-change interrupt */
 	PCMSK = 0b00000001;		/* enable for PCINT0 (DI) pin */
 	GIMSK = 0b00100000;		/* enable in general */
+	sei();
 }
 
 
