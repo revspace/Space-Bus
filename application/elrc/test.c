@@ -10,19 +10,22 @@
 #include <util/delay.h>
 #include "tiny485.h"
 
-// TODO: this should be userdata in the hw callback struct
-static int sent=0;
+typedef struct {
+  int sent;
+} test_data_t;
 
-void byte_received(uint8_t b) {
+void byte_received(uint8_t b,void *data) {
 }
 
-void byte_sent(void) {
-  sent=1;
+void byte_sent(void *data) {
+  test_data_t *test = (test_data_t*)data;
+  test->sent=1;
 }
 
 int main(void) {
   struct hw_callbacks cb;
   uint8_t byte;
+  test_data_t data;
 
   /* initialize spacebus link layer */
   cb.u_byte_received=byte_received;
@@ -32,10 +35,10 @@ int main(void) {
 
   byte=1;
   while(1) {
-        sent=0;
+        data.sent=0;
 	cb.d_begin_transmission();
 	cb.d_send_byte(byte);
-        while(sent==0);
+        while(data.sent==0);
         cb.d_end_transmission();
 	if( ++byte > 4) byte=1;
 	_delay_ms(5000);

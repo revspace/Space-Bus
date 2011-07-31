@@ -22,8 +22,9 @@
  * SBLP, and vice versa for the i_ ones.
  */
 struct hw_callbacks {
-        void (*u_byte_received)(uint8_t b);     /**< called when the HW layer receives a byte */
-        void (*u_byte_sent)();                  /**< called when the HW layer has sent a byte */
+	void *c_data;					/**< custom pointer for link-specific data */
+        void (*u_byte_received)(uint8_t b,void *d);     /**< called when the HW layer receives a byte */
+        void (*u_byte_sent)(void *d);                  	/**< called when the HW layer has sent a byte */
 
         void (*d_begin_transmission)();         /**< called when the link layer wishes to start a (potentially multi-byte) transmission. */
         void (*d_end_transmission)();           /**< called when the link layer wishes to end a (potentially multi-byte) transmission. */

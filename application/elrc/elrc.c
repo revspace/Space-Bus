@@ -16,25 +16,30 @@
 #define LAMP_DIR	DDRB
 #define LAMP_PIN	4
 
-// TODO: this should be userdata in the hw callback struct
-static int elrc=0;
-static int lamp=0;
+typedef struct {
+  int elrc;
+  int lamp;
+} elrc_data_t;
 
-void byte_received(uint8_t b) {
+// TODO: this should be userdata in the hw callback struct
+
+void byte_received(uint8_t b,void *data) {
+  elrc_data_t *elrc = (elrc_data_t *)data;
   switch(b) {
-    case 1: elrc=1; break;
-    case 2: elrc=0; break;
-    case 3: lamp=1; break;
-    case 4: lamp=0; break;
+    case 1: elrc->elrc=1; break;
+    case 2: elrc->elrc=0; break;
+    case 3: elrc->lamp=1; break;
+    case 4: elrc->lamp=0; break;
     default: break; //ignore unknown bytes
   }
 }
 
-void byte_sent(void) {
+void byte_sent(void *data) {
 }
 
 int main(void) {
   struct hw_callbacks cb;
+  elrc_data_t data={0,0};
 
   /* initialize relay i/o */
   ELRC_DIR |= (1<<ELRC_PIN);
@@ -45,12 +50,13 @@ int main(void) {
   /* TODO: use SBP instead of raw frames */
   cb.u_byte_received=byte_received;
   cb.u_byte_sent=byte_sent;
+  cb.c_data=&data;
 
   tiny485(&cb);
 
   while(1) {
-	if(elrc) ELRC_PORT|=_BV(ELRC_PIN); else ELRC_PORT&=~_BV(ELRC_PIN);
-	if(lamp) LAMP_PORT|=_BV(LAMP_PIN); else LAMP_PORT&=~_BV(LAMP_PIN);
+	if(data.elrc) ELRC_PORT|=_BV(ELRC_PIN); else ELRC_PORT&=~_BV(ELRC_PIN);
+	if(data.lamp) LAMP_PORT|=_BV(LAMP_PIN); else LAMP_PORT&=~_BV(LAMP_PIN);
 	// waste cycles
   }
 }

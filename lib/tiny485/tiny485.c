@@ -185,7 +185,7 @@ ISR(USI_OVF_vect) {
 
 			/* notify higher level */
 			sei();
-			(*(t485_data.cb->u_byte_sent))();
+			(*(t485_data.cb->u_byte_sent))(t485_data.cb->c_data);
 		} else {
 			USIBR = t485_data.buf;	/* or send another byte */
 			USISR = 0x0B;	/* wait for 16-11 = 5 bits (half the message) */
@@ -201,6 +201,6 @@ ISR(USI_OVF_vect) {
 
 		/* notify higher level */
 		sei();
-		(*(t485_data.cb->u_byte_received))(bit_reverse(USIBR));
+		(*(t485_data.cb->u_byte_received))(bit_reverse(USIBR),t485_data.cb->c_data);
 	}
 }
