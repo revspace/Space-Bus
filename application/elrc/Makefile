@@ -15,7 +15,7 @@ clean :
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 %.elf:	%.o ../../lib/tiny485/tiny485.o
-	$(CC) -o $@ $< ../../lib/tiny485/tiny485.o
+	$(CC) $(CFLAGS) -o $@ $< ../../lib/tiny485/tiny485.o
 
 %.hex:	%.elf
 	avr-objcopy -j .text -j .data -O ihex $< $@
