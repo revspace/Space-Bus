@@ -11,19 +11,9 @@
 #include "tiny485.h"
 
 // TODO: this should be userdata in the hw callback struct
-static int elrc=0;
-static int lamp=0;
-
 static int sent=0;
 
 void byte_received(uint8_t b) {
-  switch(b) {
-    case 1: elrc=1; break;
-    case 2: elrc=0; break;
-    case 3: lamp=1; break;
-    case 4: lamp=0; break;
-    default: break; //ignore unknown bytes
-  }
 }
 
 void byte_sent(void) {
