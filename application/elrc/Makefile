@@ -1,5 +1,5 @@
 CC	:= avr-gcc
-CFLAGS	:= -O3 -mmcu=attiny85 -I../../lib/tiny485
+CFLAGS	:= -O3 -Wall -Wextra -mmcu=attiny85 -I../../lib/tiny485
 
 all : elrc.hex test.hex
 
@@ -19,4 +19,3 @@ clean :
 
 %.hex:	%.elf
 	avr-objcopy -j .text -j .data -O ihex $< $@
-

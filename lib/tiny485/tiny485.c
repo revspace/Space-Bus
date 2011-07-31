@@ -43,7 +43,6 @@ uint8_t bit_reverse(uint8_t b) {
 	return b;
 }
 
-
 /* direct hardware interfacing convenience functions
  * do what they say on the tin - see ATTiny85 datasheet for details
  */
@@ -115,10 +114,10 @@ void t485_end_transmission() {
 void t485_send_byte(uint8_t b) {
 	b = bit_reverse(b);
 
-	USIBR = HIGH & START_BIT & (b >> 2);
+	USIDR = HIGH & START_BIT & (b >> 2);
 	USISR = 0x0B;	/* wait for 16-11 = 5 bits (half the message) */
 
-	t485_data.buf = (b << 3) | (STOP_BIT);		/* store next byte to send it when necessary */
+	t485_data.buf = (b << 3) | (STOP_BIT);	/* store next byte to send it when necessary */
 	t485_data.state = T485_STATE_XMIT;
 
 	timer_on();
@@ -137,7 +136,10 @@ void tiny485(struct hw_callbacks *cb) {
 	cb->d_send_byte		= &t485_send_byte;
 
 	/** \todo other init? */
-	/** \todo sane initial values for pins used */
+	USI_DDR |= _BV(DO);
+	USI_DDR &= ~_BV(DI);
+	
+	DEN_DDR |= _BV(DEN);
 
 	/* initialise timer */
 	TCCR0A = 0b00000010;		/* CTC mode */
@@ -150,14 +152,13 @@ void tiny485(struct hw_callbacks *cb) {
 	/* initialise pin-change interrupt */
 	PCMSK = 0b00000001;		/* enable for PCINT0 (DI) pin */
 	GIMSK = 0b00100000;		/* enable in general */
-
 }
 
 
 /* interrupt vectors */
 /** Pin change ISR. Synchronise the receive timer to the node transmitting. */
 ISR(PCINT0_vect) {
-	if(USI_PORT & _BV(DIN) == 0) {
+	if((USI_PORT & _BV(DI)) == 0) {
 		/* start bit detected! sync the timer - sample 1/2 bit length later */
 		TCNT0 = T485_BIT_TIMER / 2;
 		t485_data.state = 0;
@@ -179,28 +180,29 @@ ISR(USI_OVF_vect) {
 	if(t485_data.state & T485_STATE_XMIT) {
 		/* if we're transmitting, this means we need to either... */
 		if(t485_data.state & T485_STATE_BYTE2) {
-			timer_off();		/* stop transmitting */
+			timer_off();		/* ...stop transmitting... */
 			usi_off();
 			t485_data.state = 0;
 
-			/* notify higher level */
+			/* ...and notify the layer above... */
 			sei();
 			(*(t485_data.cb->u_byte_sent))(t485_data.cb->c_data);
 		} else {
-			USIBR = t485_data.buf;	/* or send another byte */
-			USISR = 0x0B;	/* wait for 16-11 = 5 bits (half the message) */
+			USIDR = t485_data.buf;	/* ...or send another byte */
+			USISR = 0x0B;		/* wait for 16-11 = 5 bits (half the message) */
 			t485_data.state |= T485_STATE_BYTE2;
 		}
 	} else {
 		/* if we're receiving, we need to handle the received byte */
 		usi_off();
 		timer_off();
+
 		/* load USI buffer into buf */
 		t485_data.buf = USIBR;
 		pcint_on();
 
 		/* notify higher level */
 		sei();
-		(*(t485_data.cb->u_byte_received))(bit_reverse(USIBR),t485_data.cb->c_data);
+		(*(t485_data.cb->u_byte_received))(bit_reverse(USIBR), t485_data.cb->c_data);
 	}
 }
