@@ -6,12 +6,12 @@
  */
 
 #include <avr/io.h>
-#define F_CPU 8000000UL  // 8 MHz
+#define F_CPU 1000000UL  // 1 MHz
 #include <util/delay.h>
 #include "tiny485.h"
 
 typedef struct {
-  int sent;
+  volatile int sent;
 } test_data_t;
 
 void byte_received(uint8_t b,void *data) {
@@ -31,17 +31,20 @@ int main(void) {
   /* initialize spacebus link layer */
   cb.u_byte_received=&byte_received;
   cb.u_byte_sent=&byte_sent;
+  cb.c_data=(void *)&data;
 
   tiny485(&cb);
 
   byte=1;
   while(1) {
         data.sent=0;
+
 	cb.d_begin_transmission();
 	cb.d_send_byte(byte);
         while(data.sent==0);
         cb.d_end_transmission();
+
 	if( ++byte > 4) byte=1;
-	_delay_ms(100);
+	_delay_ms(1);
   }
 }

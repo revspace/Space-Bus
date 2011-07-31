@@ -15,7 +15,7 @@
 
 #define DI		PB0	/**< the DI pin on the USI_PORT */
 #define DO		PB1
-#define DEN		PB4	/**< the data enable pin on the DEN_PORT */
+#define DEN		PB2	/**< the data enable pin on the DEN_PORT */
 
 /** SBLP/HW communication struct
  *

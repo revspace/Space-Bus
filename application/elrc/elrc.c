@@ -6,6 +6,8 @@
  */
 
 #include <avr/io.h>
+#define F_CPU 1000000UL  // 1 MHz
+#include <util/delay.h>
 #include "tiny485.h"
 
 #define ELRC_PORT	PORTB
@@ -17,11 +19,9 @@
 #define LAMP_PIN	4
 
 typedef struct {
-  int elrc;
-  int lamp;
+  volatile int elrc;
+  volatile int lamp;
 } elrc_data_t;
-
-// TODO: this should be userdata in the hw callback struct
 
 void byte_received(uint8_t b,void *data) {
   elrc_data_t *elrc = (elrc_data_t *)data;
@@ -45,7 +45,10 @@ int main(void) {
   ELRC_DIR |= (1<<ELRC_PIN);
   LAMP_DIR |= (1<<LAMP_PIN);
 
- 
+  /* reset relays */
+  ELRC_PORT &= ~_BV(ELRC_PIN);
+  LAMP_PORT &= ~_BV(LAMP_PIN);
+
   /* initialize spacebus link layer */
   /* TODO: use SBP instead of raw frames */
   cb.u_byte_received=byte_received;
@@ -53,7 +56,7 @@ int main(void) {
   cb.c_data=&data;
 
   tiny485(&cb);
-
+  
   while(1) {
 	if(data.elrc) ELRC_PORT|=_BV(ELRC_PIN); else ELRC_PORT&=~_BV(ELRC_PIN);
 	if(data.lamp) LAMP_PORT|=_BV(LAMP_PIN); else LAMP_PORT&=~_BV(LAMP_PIN);
