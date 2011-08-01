@@ -10,7 +10,7 @@
 #include <util/delay.h>
 #include "tiny485.h"
 
-#define ELRC_PORT	PORTB
+#define ELRC_PORT	PORTB	/**< Port to which the ELRC is connected */
 #define ELRC_DIR	DDRB
 #define ELRC_PIN	3
 
@@ -18,11 +18,23 @@
 #define LAMP_DIR	DDRB
 #define LAMP_PIN	4
 
+/** \brief context data to be passed to callbacks */
 typedef struct {
-  volatile int elrc;
-  volatile int lamp;
+  volatile int elrc; /**< requested coil relay status */
+  volatile int lamp; /**< requested lamp relay status */
 } elrc_data_t;
 
+/*
+** \brief Callback function for received bytes.
+**
+** Function called when a byte is received, runs in interrupt
+** context.
+** Interprets the byte, and takes action accordingly.
+**
+** @param b the byte that was received
+** @param data user data passed in the initialization function
+**
+*/
 void byte_received(uint8_t b,void *data) {
   elrc_data_t *elrc = (elrc_data_t *)data;
   switch(b) {
@@ -34,7 +46,18 @@ void byte_received(uint8_t b,void *data) {
   }
 }
 
+/*
+** \brief Callback function for received bytes.
+**
+** Function called when a byte is sent, runs in interrupt
+** context.
+** Does nothing right now.
+**
+** @param data user data passed in the initialization function
+**
+*/
 void byte_sent(void *data) {
+  elrc_data_t *elrc = (elrc_data_t *)data;
 }
 
 int main(void) {
@@ -49,8 +72,8 @@ int main(void) {
   ELRC_PORT &= ~_BV(ELRC_PIN);
   LAMP_PORT &= ~_BV(LAMP_PIN);
 
-  /* initialize spacebus link layer */
-  /* TODO: use SBP instead of raw frames */
+  /** initialize spacebus link layer
+   ** \todo use SBP instead of raw frames */
   cb.u_byte_received=byte_received;
   cb.u_byte_sent=byte_sent;
   cb.c_data=&data;
