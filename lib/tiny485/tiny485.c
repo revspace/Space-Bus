@@ -11,7 +11,7 @@
 #include <avr/interrupt.h>
 #include <avr/io.h>
 
-#include "../sbp/sbp.h"
+#include "../sbp/interop.h"
 #include "tiny485.h"
 
 #define T485_BIT_TIMER 104
@@ -138,7 +138,7 @@ void tiny485(struct hw_callbacks *cb) {
 	/** \todo other init? */
 	USI_DDR |= _BV(DO);
 	USI_DDR &= ~_BV(DI);
-	
+
 	DEN_DDR |= _BV(DEN);
 
 	/* initialise timer */

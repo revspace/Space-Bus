@@ -45,6 +45,6 @@ int main(void) {
         cb.d_end_transmission();
 
 	if( ++byte > 4) byte=1;
-	_delay_ms(1);
+	_delay_ms(500);
   }
 }
