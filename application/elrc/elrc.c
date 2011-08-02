@@ -12,15 +12,17 @@
 
 #define ELRC_PORT	PORTB	/**< Port to which the ELRC is connected */
 #define ELRC_DIR	DDRB
-#define ELRC_PIN	3
+#define ELRC_PIN	4
 
 #define LAMP_PORT	PORTB
 #define LAMP_DIR	DDRB
-#define LAMP_PIN	4
+#define LAMP_PIN	3
+
+#define COIL_DELAY	10000
 
 /** \brief context data to be passed to callbacks */
 typedef struct {
-  volatile int elrc; /**< requested coil relay status */
+  volatile int elrc; /**< requested coil relay status (reset to 0 after timeout) */
   volatile int lamp; /**< requested lamp relay status */
 } elrc_data_t;
 
@@ -63,6 +65,7 @@ void byte_sent(void *data) {
 int main(void) {
   struct hw_callbacks cb;
   elrc_data_t data={0,0};
+  int counter=0;
 
   /* initialize relay i/o */
   ELRC_DIR |= (1<<ELRC_PIN);
@@ -81,8 +84,18 @@ int main(void) {
   tiny485(&cb);
   
   while(1) {
-	if(data.elrc) ELRC_PORT|=_BV(ELRC_PIN); else ELRC_PORT&=~_BV(ELRC_PIN);
+	if(data.elrc) {
+		counter=COIL_DELAY/100;
+		data.elrc=0;
+	}
+	if(counter) {
+		ELRC_PORT|=_BV(ELRC_PIN);
+		counter--;
+	} else {
+		ELRC_PORT&=~_BV(ELRC_PIN);
+	}
 	if(data.lamp) LAMP_PORT|=_BV(LAMP_PIN); else LAMP_PORT&=~_BV(LAMP_PIN);
 	// waste cycles
+	_delay_ms(100);
   }
 }
