@@ -17,24 +17,6 @@
 #define DO		PB1
 #define DEN		PB2	/**< the data enable pin on the DEN_PORT */
 
-/** SBLP/HW communication struct
- *
- * This struct contains the callbacks used for communication between the
- * link (SBP) and hardware layers. Callbacks prefixed u_ are up from HW to
- * SBLP, and those marked d_ are down from SBLP to HW. same goes for
- * variables: those marked u_ are allocated/filled by HW and read by
- * SBLP, and vice versa for the i_ ones.
- */
-struct hw_callbacks {
-	void  *c_data;					/**< custom pointer for link-specific data */
-        void (*u_byte_received)(uint8_t b,void *d);	/**< called when the HW layer receives a byte */
-        void (*u_byte_sent)(void *d);			/**< called when the HW layer has sent a byte */
-
-        void (*d_begin_transmission)();		/**< called when the link layer wishes to start a (potentially multi-byte) transmission. */
-        void (*d_end_transmission)();		/**< called when the link layer wishes to end a (potentially multi-byte) transmission. */
-        void (*d_send_byte)(uint8_t b);	/**< called when the link layer wishes to send a single byte (as part of a transmission). */
-} ;
-
 /** Initialise hardware layer and fill in callbacks.
  *
  * This is the only function the outside world needs to know about -
