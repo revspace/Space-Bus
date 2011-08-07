@@ -4,8 +4,16 @@
  * This file implements the hardware-dependent parts of the SBLP protocol.
  * It is specific to the Atmel ATTiny85 microcontroller.
  *
+ * Responsibilities of this layer:
+ *	\li Interfacing to the bus via a MAX485-style transceiver
+ *	\li Byte-level framing with start & stop bits (as per Atmel application note AVR307)
+ *	\li Synchronising to the bus on start-up
+ *	\li Escaping the synchronisation and escape bytes
+ *
  * \todo the decision for uart-mode transmission has not been
  * finalised. Make sure this code is correct when it has.
+ *
+ * \todo there must be a nicer way to do bus synchronisation...
  */
 
 #include <avr/interrupt.h>
@@ -14,22 +22,30 @@
 #include "../sbp/interop.h"
 #include "tiny485.h"
 
-#define T485_BIT_TIMER 104
+/* timing info */
+#define T485_BIT_TIMER 104	/**< length of one bit in timer cycles */
 
-/* the USI is 8 bits wide, the UART protocol uses 10 or so bits, so
- * we split them up and use some magic (as per application note AVR307)
- */
-#define T485_STATE_BYTE2 0x01	/** internal state flag: second byte of UART pair? */
-#define T485_STATE_XMIT  0x02	/** internal state flag: transmitting or receiving? */
+/* USI seeds */
+#define T485_RECV_SEED	0x07	/**< receive seed:  shift in 16-7=9 bits (start + data) */
+#define T485_XMIT_SEED	0x0B	/**< transmit seed: shift out 16-11=5 bits (half a byte + start/stop) */
 
-/* some bit masks and stuff for said magic */
-#define HIGH		0xFF
-#define START_BIT	0xBF
-#define STOP_BIT	0x07
+/* bit constants */
+#define T485_INIT1	0b01111111	/**< first part of init sequence */
+#define T485_INIT2	0b11000000	/**< second part of init sequence */
 
 static struct {
 	struct hw_callbacks *cb;
-	uint8_t state;
+
+	enum {
+		T485_STATE_INIT1,	/**< look for first half of init sequence */
+		T485_STATE_INIT2,	/**< look for second half of init sequence */
+
+		T485_STATE_IDLE,	/**< idle: ready to start transmitting or receiving */
+		T485_STATE_RECV,	/**< receive: currently receiving a byte */
+
+		T485_STATE_XMIT1,	/**< transmit: currently transmitting first half of a byte */
+		T485_STATE_XMIT2	/**< transmit: currently transmitting second half of a byte */
+	} state;
 	uint8_t buf;
 } t485_data;
 
@@ -109,13 +125,13 @@ void t485_end_transmission() {
 /** Send a single byte.
  * This will start pushing out a byte through the USI into the line
  * driver. Make sure to call the begin_transmission function before
- * this.
+ * this so the data appears on the bus as well.
  */
 void t485_send_byte(uint8_t b) {
 	b = bit_reverse(b);
 
 	USIDR = (b >> 1);
-	USISR = 0x0B;	/* wait for 16-11 = 5 bits (half the message) */
+	USISR = T485_XMIT_SEED;
 
 	t485_data.buf = (b << 4) | 0x0F;
 	t485_data.state = T485_STATE_XMIT;
@@ -135,6 +151,9 @@ void tiny485(struct hw_callbacks *cb) {
 
 	cb->d_send_byte		= &t485_send_byte;
 
+	/* set state */
+	t485_data.state = T485_STATE_INIT1;	/* start hunting for init sequence */
+
 	/** \todo other init? */
 	USI_DDR |= _BV(DO);
 	USI_DDR &= ~_BV(DI);
@@ -144,7 +163,7 @@ void tiny485(struct hw_callbacks *cb) {
 	/* initialise timer */
 	TCCR0A = 0b00000010;		/* CTC mode */
 	TCCR0B = 0b00000010;		/* prescaler = 8 */
-	OCR0A  = T485_BIT_TIMER;	/* interrupt every bit length */
+	OCR0A  = T485_BIT_TIMER;	/* compare match every bit length - this clocks the USI */
 
 	/* initialise USI */
 	USICR = 0b01010000;
@@ -152,7 +171,7 @@ void tiny485(struct hw_callbacks *cb) {
 	/* initialise pin-change interrupt */
 	PCMSK = 0b00000001;		/* enable for PCINT0 (DI) pin */
 	GIMSK = 0b00100000;		/* enable in general */
-	sei();
+	sei();				/* turn on interrupts */
 }
 
 
@@ -162,12 +181,31 @@ ISR(PCINT0_vect) {
 	if((USI_PORT & _BV(DI)) == 0) {
 		/* start bit detected! sync the timer - sample 1/2 bit length later */
 		TCNT0 = T485_BIT_TIMER / 2;
-		t485_data.state = 0;
-		USISR = 0x07;	/* wait for 16-7 = 9 bits (start bit + a byte) */
+		t485_data.state = T485_STATE_RECV;
+		USISR = T485_RECV_SEED;	/* wait for 16-7 = 9 bits (start bit + a byte) */
 
 		pcint_off();
 		timer_on();
 		usi_on();
+	}
+}
+
+/** Bit timer interrupt - this interrupt is only enabled when sync-hunting. */
+ISR(TIM0_COMPA_vect) {
+	switch(t485_data.state) {
+		case T485_STATE_INIT1:
+			if(USIDR == T485_INIT1) {	/* first half of sequence detected */
+				t485_data.state = T485_STATE_INIT2;	/* hunt for second half */
+
+				USIDR = 0;	/* clear USI data register so we don't get false hits for the second half */
+			}
+			break;
+
+		case T485_STATE_INIT2:
+			if(USIDR == T485_INIT2) {
+				/* sync fully detected! we are now synchronised to the bus */
+				t485_data.state = T485_STATE_IDLE;
+			}
 	}
 }
 
@@ -178,34 +216,42 @@ ISR(PCINT0_vect) {
  * layer above via the appropriate struct hw_callbacks members.
  */
 ISR(USI_OVF_vect) {
-	if(t485_data.state & T485_STATE_XMIT) {
-		/* if we're transmitting, this means we need to either... */
-		if(t485_data.state & T485_STATE_BYTE2) {
-			USISR |= _BV(USIOIF);	/* clear overflow flag */
-			usi_off();
-			timer_off();		/* ...stop transmitting... */
-			t485_data.state = 0;
-
-			/* ...and notify the layer above... */
-			sei();
-			(*(t485_data.cb->u_byte_sent))(t485_data.cb->c_data);
-		} else {
+	switch() {
+		case T485_STATE_XMIT1:
 			USISR |= _BV(USIOIF);	/* clear overflow flag */
 			USIDR = t485_data.buf;	/* ...or send another byte */
-			USISR = 0x0B;		/* wait for 16-11 = 5 bits (half the message) */
-			t485_data.state |= T485_STATE_BYTE2;
-		}
-	} else {
-		/* if we're receiving, we need to handle the received byte */
-		usi_off();
-		timer_off();
+			USISR = T485_XMIT_SEED;
+			t485_data.state = T485_STATE_XMIT2;
+			break;
 
-		/* load USI buffer into buf */
-		t485_data.buf = USIBR;
-		pcint_on();
+		case T485_STATE_XMIT2:
+				USISR |= _BV(USIOIF);	/* clear overflow flag */
+				usi_off();
+				timer_off();		/* ...stop transmitting... */
+				t485_data.state = T485_STATE_IDLE;
 
-		/* notify higher level */
-		sei();
-		(*(t485_data.cb->u_byte_received))(bit_reverse(USIBR), t485_data.cb->c_data);
+				/* ...and notify the layer above... */
+				sei();
+				(*(t485_data.cb->u_byte_sent))(t485_data.cb->c_data);
+				break;
+
+		case T485_STATE_RECV:
+			/* if we're receiving, we need to handle the received byte */
+			usi_off();
+			timer_off();
+			t485_data.state = T485_STATE_IDLE;
+
+			/* load USI buffer into buf */
+			t485_data.buf = USIBR;
+			pcint_on();
+
+			/* notify higher level */
+			sei();
+			(*(t485_data.cb->u_byte_received))(bit_reverse(USIBR), t485_data.cb->c_data);
+			break;
+
+		default:
+			/* do nothing */
+			break;
 	}
 }
