@@ -14,7 +14,7 @@
  * variables: those marked u_ are allocated/filled by HW and read by
  * SBLP, and vice versa for the i_ ones.
  */
-struct hw_callbacks {
+struct hw_interface {
 	void  *c_data;					/**< custom pointer for link-specific data */
         void (*u_byte_received)(uint8_t b,void *d);	/**< called when the HW layer receives a byte */
         void (*u_byte_sent)(void *d);			/**< called when the HW layer has sent a byte */
@@ -34,13 +34,13 @@ typedef struct {
 /** This struct works in the same way as the hw_callbacks struct,
  * but contains callbacks between link and logical layer instead.
  */
-struct  {
+struct protocol_interface {
 	void (*u_frame_received)(frame_t frame);
 	void (*u_frame_sent)();
 
 	void (*d_send_frame)(frame_t frame);
 	void (*d_recv_frame)();
-} protocol_callbacks_t;
+} ;
 
 #define _INTEROP_H
 #endif

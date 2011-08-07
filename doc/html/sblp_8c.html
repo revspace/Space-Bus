@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
-<title>Space-Bus: application/elrc/test.c File Reference</title>
+<title>Space-Bus: lib/sblp/sblp.c File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <link href="search/search.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="search/search.js"></script>
@@ -59,73 +59,47 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
   <div id="nav-path" class="navpath">
     <ul>
-      <li class="navelem"><a class="el" href="dir_56b440e08985fecc38d7cbb6adb2f9ef.html">application</a>      </li>
-      <li class="navelem"><a class="el" href="dir_b7daf16fe4f5fca8c2677de50659ab48.html">elrc</a>      </li>
+      <li class="navelem"><a class="el" href="dir_10ebf961dbc53793bf62f5022c0d659e.html">lib</a>      </li>
+      <li class="navelem"><a class="el" href="dir_22134d755165e45124344643b426fb8e.html">sblp</a>      </li>
     </ul>
   </div>
 </div>
 <div class="header">
   <div class="summary">
-<a href="#nested-classes">Data Structures</a> &#124;
-<a href="#define-members">Defines</a> &#124;
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
-<h1>test.c File Reference</h1>  </div>
+<h1>sblp.c File Reference</h1>  </div>
 </div>
 <div class="contents">
 
-<p>Test application, sends bytes to the bus that can be interpreted by the elrc application.  
+<p>Implements the hardware-independent part of the SpaceBus Link Protocol.  
 <a href="#_details">More...</a></p>
-<div class="textblock"><code>#include &lt;avr/io.h&gt;</code><br/>
-<code>#include &lt;util/delay.h&gt;</code><br/>
-<code>#include &quot;tiny485.h&quot;</code><br/>
+<div class="textblock"><code>#include &quot;interop.h&quot;</code><br/>
+<code>#include &quot;sblp.h&quot;</code><br/>
 </div><table class="memberdecls">
-<tr><td colspan="2"><h2><a name="nested-classes"></a>
-Data Structures</h2></td></tr>
-<tr><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structtest__data__t.html">test_data_t</a></td></tr>
-<tr><td colspan="2"><h2><a name="define-members"></a>
-Defines</h2></td></tr>
-<tr><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="test_8c.html#a43bafb28b29491ec7f871319b5a3b2f8">F_CPU</a>&#160;&#160;&#160;1000000UL</td></tr>
 <tr><td colspan="2"><h2><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="test_8c.html#a0e050133da4bbd697a0d9994b22f2abe">byte_received</a> (uint8_t b, void *data)</td></tr>
-<tr><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="test_8c.html#ac05991fa674d147ec4d76ae0d4301874">byte_sent</a> (void *data)</td></tr>
-<tr><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="test_8c.html#afa61cf6977ec01a200e895f380e23ee9">send</a> (uint8_t b, struct hw_callbacks *cb, <a class="el" href="structtest__data__t.html">test_data_t</a> *data)</td></tr>
-<tr><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="test_8c.html#a840291bc02cba5474a4cb46a9b9566fe">main</a> (void)</td></tr>
+<tr><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="sblp_8c.html#a2a1c13b00152136a3b30def0b2ba55ae">sblp</a> (struct hw_interface *<a class="el" href="sblp_8c.html#a89630827bbd3f10eb1dfbea38739492a">hw_cb</a>, struct protocol_interface *<a class="el" href="sblp_8c.html#a0f80b8f5aa077ae789f75b4fce592ed8">pr_cb</a>)</td></tr>
 </table>
 <hr/><a name="_details"></a><h2>Detailed Description</h2>
-<div class="textblock"><p>Test application, sends bytes to the bus that can be interpreted by the elrc application. </p>
-<p>Targets an attiny85 connected to the space bus. </p>
-</div><hr/><h2>Define Documentation</h2>
-<a class="anchor" id="a43bafb28b29491ec7f871319b5a3b2f8"></a><!-- doxytag: member="test.c::F_CPU" ref="a43bafb28b29491ec7f871319b5a3b2f8" args="" -->
+<div class="textblock"><p>Implements the hardware-independent part of the SpaceBus Link Protocol. </p>
+<p>This is, once again, implemented as a state machine. The protocol starts by using the HW layer to fish for its first valid sync sequence, then receives the message indicated by it and starts idling. </p>
+</div><hr/><h2>Function Documentation</h2>
+<a class="anchor" id="a2a1c13b00152136a3b30def0b2ba55ae"></a><!-- doxytag: member="sblp.c::sblp" ref="a2a1c13b00152136a3b30def0b2ba55ae" args="(struct hw_interface *hw_cb, struct protocol_interface *pr_cb)" -->
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define F_CPU&#160;&#160;&#160;1000000UL</td>
-        </tr>
-      </table>
-</div>
-<div class="memdoc">
-
-</div>
-</div>
-<hr/><h2>Function Documentation</h2>
-<a class="anchor" id="a0e050133da4bbd697a0d9994b22f2abe"></a><!-- doxytag: member="test.c::byte_received" ref="a0e050133da4bbd697a0d9994b22f2abe" args="(uint8_t b, void *data)" -->
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void byte_received </td>
+          <td class="memname">void sblp </td>
           <td>(</td>
-          <td class="paramtype">uint8_t&#160;</td>
-          <td class="paramname"><em>b</em>, </td>
+          <td class="paramtype">struct hw_interface *&#160;</td>
+          <td class="paramname"><em>hw_cb</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">void *&#160;</td>
-          <td class="paramname"><em>data</em>&#160;</td>
+          <td class="paramtype">struct protocol_interface *&#160;</td>
+          <td class="paramname"><em>pr_cb</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -138,16 +112,13 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="ac05991fa674d147ec4d76ae0d4301874"></a><!-- doxytag: member="test.c::byte_sent" ref="ac05991fa674d147ec4d76ae0d4301874" args="(void *data)" -->
+<hr/><h2>Variable Documentation</h2>
+<a class="anchor" id="a89630827bbd3f10eb1dfbea38739492a"></a><!-- doxytag: member="sblp.c::hw_cb" ref="a89630827bbd3f10eb1dfbea38739492a" args="" -->
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void byte_sent </td>
-          <td>(</td>
-          <td class="paramtype">void *&#160;</td>
-          <td class="paramname"><em>data</em></td><td>)</td>
-          <td></td>
+          <td class="memname">struct hw_interface* <a class="el" href="sblp_8c.html#a89630827bbd3f10eb1dfbea38739492a">hw_cb</a></td>
         </tr>
       </table>
 </div>
@@ -155,16 +126,12 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="a840291bc02cba5474a4cb46a9b9566fe"></a><!-- doxytag: member="test.c::main" ref="a840291bc02cba5474a4cb46a9b9566fe" args="(void)" -->
+<a class="anchor" id="a0f80b8f5aa077ae789f75b4fce592ed8"></a><!-- doxytag: member="sblp.c::pr_cb" ref="a0f80b8f5aa077ae789f75b4fce592ed8" args="" -->
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">int main </td>
-          <td>(</td>
-          <td class="paramtype">void&#160;</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
+          <td class="memname">data docs Space Bus lib sblp sblp c data docs Space Bus lib sblp sblp c struct protocol_interface* <a class="el" href="sblp_8c.html#a0f80b8f5aa077ae789f75b4fce592ed8">pr_cb</a></td>
         </tr>
       </table>
 </div>
@@ -172,32 +139,12 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="afa61cf6977ec01a200e895f380e23ee9"></a><!-- doxytag: member="test.c::send" ref="afa61cf6977ec01a200e895f380e23ee9" args="(uint8_t b, struct hw_callbacks *cb, test_data_t *data)" -->
+<a class="anchor" id="a308bcdad3f4e8074e8094c458d06a06d"></a><!-- doxytag: member="sblp.c::state" ref="a308bcdad3f4e8074e8094c458d06a06d" args="" -->
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void send </td>
-          <td>(</td>
-          <td class="paramtype">uint8_t&#160;</td>
-          <td class="paramname"><em>b</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct hw_callbacks *&#160;</td>
-          <td class="paramname"><em>cb</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="structtest__data__t.html">test_data_t</a> *&#160;</td>
-          <td class="paramname"><em>data</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
+          <td class="memname">enum { ... }   <a class="el" href="tiny485_8c.html#a094114a3e2a93c2f3abd928a770e221f">state</a></td>
         </tr>
       </table>
 </div>

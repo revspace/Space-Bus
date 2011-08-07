@@ -1,5 +1,5 @@
 CC	:= avr-gcc
-CFLAGS	:= -O3 -Wall -Wextra -mmcu=attiny85
+CFLAGS	:= -Os -Wall -Wextra -mmcu=attiny85
 
 all : tiny485.o
 

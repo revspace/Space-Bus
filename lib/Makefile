@@ -1,4 +1,4 @@
-SUBDIRS=tiny485
+SUBDIRS=tiny485 sblp
 
 all:
 	@for DIR in $(SUBDIRS); do \

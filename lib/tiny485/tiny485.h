@@ -4,7 +4,7 @@
 
 #ifndef _TINY485_H
 
-#include "../sbp/sbp.h"
+#include "../sblp/interop.h"
 
 /* for simplicity's sake, config is also included here */
 #define USI_PORT	PORTB	/**< the port the USI in/output pins are on */
@@ -25,7 +25,7 @@
  * this, the callbacks specified in the struct hw_callbacks are valid
  * and can be called for further interaction with this layer.
  */
-void tiny485(struct hw_callbacks *cb);
+void tiny485(struct hw_interface *cb);
 
 #define _TINY485_C
 #endif

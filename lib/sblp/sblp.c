@@ -1,9 +1,18 @@
-#include "interop.h"
-#include "sbp.h"
+/** \file sblp.c
+ * \brief Implements the hardware-independent part of the SpaceBus Link Protocol.
+ *
+ * This is, once again, implemented as a state machine. The protocol
+ * starts by using the HW layer to fish for its first valid sync
+ * sequence, then receives the message indicated by it and starts idling.
+ */
 
+#include "interop.h"
+#include "sblp.h"
+
+/** internal data for the protocol stack */
 static struct {
-	struct protocol_callbacks	*pr_cb;
-	struct hardware_callbacks	*hw_cb;
+	struct protocol_interface	*pr_cb;
+	struct hw_interface		*hw_cb;
 
 	enum {
 		SBP_STATE_INIT,		/**< the device is initialising and waiting to receive its first valid packet */
@@ -14,7 +23,7 @@ static struct {
 	} state;
 } sblp_data;
 
-void sbp(struct hardware_callbacks *hw_cb, struct protocol_callbacks *pr_cb) {
+void sblp(struct hw_interface *hw_cb, struct protocol_interface *pr_cb) {
 	/* store local copies of the HW structs */
 	sblp_data.hw_cb = hw_cb;
 	sblp_data.pr_cb = pr_cb;
