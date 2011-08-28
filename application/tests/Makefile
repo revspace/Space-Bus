@@ -1,5 +1,5 @@
 CC	:= avr-gcc
-CFLAGS	:= -O3 -Wall -Wextra -mmcu=attiny85 -I../../lib/tiny485 -I../../lib/sblp
+CFLAGS	:= -O3 -Wall -Wextra -mmcu=attiny4313 -I../../lib/tiny485 -I../../lib/sblp
 
 all : t485-test.hex
 
