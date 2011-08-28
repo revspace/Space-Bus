@@ -43,6 +43,7 @@ void send(uint8_t b, struct hw_interface *hw_if, test_data_t *data) {
 int main(void) {
 	struct hw_interface hw_if;
 	test_data_t data;
+	uint8_t i = 0;
 
 	/* initialize spacebus link layer */
 	hw_if.u_byte_received=&byte_received;
@@ -59,7 +60,7 @@ int main(void) {
 	PORTD |= _BV(PD2);
  
 	while(1) {
-		if(PIND & _BV(PD2) == 0) {
+		if((PIND & _BV(PD2)) == 0) {
 			i = (i+1)%8;
 			send(i, &hw_if, &data);
 			_delay_ms(1000);
