@@ -175,7 +175,11 @@ void tiny485(struct hw_interface *hw_if) {
 	hw_if->d_send_byte		= &t485_send_byte;
 
 	/* set state */
+#ifdef REQUIRE_SYNC
 	t485_data.state = T485_STATE_INIT1;	/* start hunting for init sequence */
+#else
+	t485_data.state = T485_STATE_IDLE;	/* start hunting for init sequence */
+#endif
 
 	/* initialise the pins we use */
 	USI_DDR |= _BV(DO);	/* DO  = output */

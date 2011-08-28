@@ -4,6 +4,8 @@
 
 #ifndef _TINY485_H
 
+#define REQUIRE_SYNC	// normally defined, only undefine for testing purposes
+
 #include "../sblp/interop.h"
 
 /** Initialise hardware layer and fill in callbacks.
