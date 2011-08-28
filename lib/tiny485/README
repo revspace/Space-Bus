@@ -8,3 +8,7 @@ using these features of the MCU:
 	- a GPIO pin for data enable
 	- timer/counter 0 and its interrupts
 	- the pin change interrupt 0
+
+Currently supported architectures:
+	- attiny85
+	- attiny4313

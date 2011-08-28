@@ -20,6 +20,7 @@
 #include <avr/io.h>
 
 #include "../sblp/interop.h"
+#include "tiny485_pin.h"
 #include "tiny485.h"
 
 /* timing info */

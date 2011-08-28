@@ -6,17 +6,6 @@
 
 #include "../sblp/interop.h"
 
-/* for simplicity's sake, config is also included here */
-#define USI_PORT	PORTB	/**< the port the USI in/output pins are on */
-#define DEN_PORT	PORTB	/**< the port the data enable pin is on */
-
-#define USI_DDR		DDRB
-#define DEN_DDR		DDRB
-
-#define DI		PB0	/**< the DI pin on the USI_PORT */
-#define DO		PB1
-#define DEN		PB2	/**< the data enable pin on the DEN_PORT */
-
 /** Initialise hardware layer and fill in callbacks.
  *
  * This is the only function the outside world needs to know about -
