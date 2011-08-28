@@ -26,19 +26,19 @@ struct hw_interface {
 } ;
 
 /** Contains a frame to be passed between layers. */
-typedef struct {
+struct frame {
 	uint16_t	 payload_size;	/**< size of payload, in bytes */
 	uint8_t	*payload;	/**< pointed to first byte of payload */
-} frame_t;
+} ;
 
 /** This struct works in the same way as the hw_callbacks struct,
  * but contains callbacks between link and logical layer instead.
  */
 struct protocol_interface {
-	void (*u_frame_received)(frame_t frame);
+	void (*u_frame_received)(struct frame f);
 	void (*u_frame_sent)();
 
-	void (*d_send_frame)(frame_t frame);
+	void (*d_send_frame)(struct frame f);
 	void (*d_recv_frame)();
 } ;
 

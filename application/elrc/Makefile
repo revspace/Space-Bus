@@ -1,5 +1,5 @@
 CC	:= avr-gcc
-CFLAGS	:= -O3 -Wall -Wextra -mmcu=attiny85 -I../../lib/tiny485
+CFLAGS	:= -O3 -Wall -Wextra -mmcu=attiny85 -I../../lib/tiny485 -I../../lib/sblp
 
 all : elrc.hex test.hex
 

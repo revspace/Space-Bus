@@ -8,6 +8,7 @@
 #include <avr/io.h>
 #define F_CPU 1000000UL  // 1 MHz
 #include <util/delay.h>
+#include "interop.h"
 #include "tiny485.h"
 
 #define ELRC_PORT	PORTB	/**< Port to which the ELRC is connected */
@@ -59,11 +60,11 @@ void byte_received(uint8_t b,void *data) {
 **
 */
 void byte_sent(void *data) {
-  elrc_data_t *elrc = (elrc_data_t *)data;
+  
 }
 
 int main(void) {
-  struct hw_callbacks cb;
+  struct hw_interface cb;
   elrc_data_t data={0,0};
   int counter=0;
 

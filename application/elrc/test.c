@@ -8,6 +8,8 @@
 #include <avr/io.h>
 #define F_CPU 1000000UL  // 1 MHz
 #include <util/delay.h>
+
+#include "interop.h"
 #include "tiny485.h"
 
 typedef struct {
@@ -23,7 +25,7 @@ void byte_sent(void *data) {
   test->sent=1;
 }
 
-void send(uint8_t b,struct hw_callbacks *cb,test_data_t *data) {
+void send(uint8_t b, struct hw_interface *cb, test_data_t *data) {
         data->sent=0;
 	cb->d_begin_transmission();
 	cb->d_send_byte(b);
@@ -32,7 +34,7 @@ void send(uint8_t b,struct hw_callbacks *cb,test_data_t *data) {
 }
 
 int main(void) {
-  struct hw_callbacks cb;
+  struct hw_interface cb;
   test_data_t data;
   uint8_t lamp_state=0;
 
