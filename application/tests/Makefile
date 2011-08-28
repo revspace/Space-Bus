@@ -1,5 +1,6 @@
-CC	:= avr-gcc
-CFLAGS	:= -O3 -Wall -Wextra -mmcu=attiny4313 -I../../lib/tiny485 -I../../lib/sblp
+include ../../Makefile.inc
+
+CFLAGS	+= -I../../lib/tiny485 -I../../lib/sblp
 
 all : t485-test.hex
 
@@ -15,3 +16,6 @@ clean :
 
 %.hex:	%.elf
 	avr-objcopy -j .text -j .data -O ihex $< $@
+
+# ../../lib/tiny485/tiny485_${AVRARCH}.o
+
