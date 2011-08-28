@@ -1,4 +1,4 @@
-SUBDIRS=elrc
+SUBDIRS=elrc tests
 
 all:
 	@for DIR in $(SUBDIRS); do \

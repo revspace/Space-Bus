@@ -4,6 +4,7 @@
 
 #ifndef _TINY485_H
 
+#include 
 #include "../sblp/interop.h"
 
 /* for simplicity's sake, config is also included here */
@@ -13,9 +14,9 @@
 #define USI_DDR		DDRB
 #define DEN_DDR		DDRB
 
-#define DI		PB0	/**< the DI pin on the USI_PORT */
-#define DO		PB1
-#define DEN		PB2	/**< the data enable pin on the DEN_PORT */
+#define DI		PB5	/**< the DI pin on the USI_PORT */
+#define DO		PB6
+#define DEN		PB7	/**< the data enable pin on the DEN_PORT */
 
 /** Initialise hardware layer and fill in callbacks.
  *

@@ -15,10 +15,11 @@
  * SBLP, and vice versa for the i_ ones.
  */
 struct hw_interface {
-	void  *c_data;					/**< custom pointer for link-specific data */
-        void (*u_byte_received)(uint8_t b,void *d);	/**< called when the HW layer receives a byte */
-        void (*u_byte_sent)(void *d);			/**< called when the HW layer has sent a byte */
-	void (*u_sync_received)(void *d);		/**< called when the HW layer sees the synchronisation sequence */
+	void  *c_data;						/**< custom pointer for link-specific data */
+
+        void (*u_byte_received)(uint8_t b, void *userdata);	/**< called when the HW layer receives a byte */
+        void (*u_byte_sent)(void *userdata);			/**< called when the HW layer has sent a byte */
+	void (*u_sync_received)(void *userdata);		/**< called when the HW layer sees the synchronisation sequence */
 
         void (*d_begin_transmission)();		/**< called when the link layer wishes to start a (potentially multi-byte) transmission. */
         void (*d_end_transmission)();		/**< called when the link layer wishes to end a (potentially multi-byte) transmission. */
@@ -35,8 +36,10 @@ struct frame {
  * but contains callbacks between link and logical layer instead.
  */
 struct protocol_interface {
-	void (*u_frame_received)(struct frame f);
-	void (*u_frame_sent)();
+	void *c_data;
+
+	void (*u_frame_received)(struct frame f, void *userdata);
+	void (*u_frame_sent)(void *userdata);
 
 	void (*d_send_frame)(struct frame f);
 	void (*d_recv_frame)();

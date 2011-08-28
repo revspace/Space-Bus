@@ -34,7 +34,7 @@
 #define T485_INIT2	0b11000000	/**< second part of init sequence */
 
 /* data bytes with special meanings */
-#define T485_SYNC_BYTE	0xFF		/**< The synchronisation byte */
+#define T485_SYNC_BYTE		0xFF		/**< The synchronisation byte */
 #define T485_ESCAPE_BYTE	0x55		/**< Escape byte for syncs in messages */
 
 #define T485_ESCAPED_SYNC	0x00		/**< A synchronisation byte when escaped */
