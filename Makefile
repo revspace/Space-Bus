@@ -1,4 +1,7 @@
+include Makefile.inc
+
 all:
+	mkdir -p ${OBJDIR}
 	make -C lib
 	make -C application
 

@@ -1,15 +1,14 @@
-CC	:= avr-gcc
-CFLAGS	:= -Os -Wall -Wextra
+include ../../Makefile.inc
 
-all : tiny485_attiny85.o tiny485_attiny4313.o
+# CFLAGS	:= -Os -Wall -Wextra
+
+all : tiny485.o
 
 clean :
-	rm -f tiny485_*.o
+	rm -f tiny485.o
 
-tiny485_attiny85.o : tiny485.c tiny485.h tiny485_pin.h
-	$(CC) $(CFLAGS) -mmcu=attiny85 -c -o tiny485_attiny85.o tiny485.c
+tiny485.o:	tiny485.c tiny485.h tiny485_pin.h
+		$(CC) $(CFLAGS) -c -o tiny485.o tiny485.c
 
-tiny485_attiny4313.o : tiny485.c tiny485.h tiny485_pin.h
-	$(CC) $(CFLAGS) -mmcu=attiny4313 -c -o tiny485_attiny4313.o tiny485.c
 
 
