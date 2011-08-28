@@ -4,7 +4,6 @@
 
 #ifndef _TINY485_H
 
-#include 
 #include "../sblp/interop.h"
 
 /** Initialise hardware layer and fill in callbacks.
