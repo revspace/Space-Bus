@@ -1,5 +1,5 @@
 /** \file tiny485.c
- * \brief An SBLP hardware-side implementation for the ATTiny85.
+ * \brief An SBLP hardware-side implementation for the ATTiny series of microcontrollers.
  *
  * This file implements the hardware-dependent parts of the SBLP protocol.
  * It is specific to the Atmel ATTiny85 microcontroller.
@@ -19,7 +19,7 @@
 #include <avr/interrupt.h>
 #include <avr/io.h>
 
-#include "../sblp/interop.h"
+#include "../interop.h"
 #include "tiny485_pin.h"
 #include "tiny485.h"
 
@@ -45,8 +45,6 @@
 #define T485_FLAG_ESCAPE	0x01
 
 static struct {
-	struct hw_interface *hw_if;
-
 	enum {
 		T485_STATE_INIT1,	/**< look for first half of init sequence */
 		T485_STATE_INIT2,	/**< look for second half of init sequence */
@@ -63,7 +61,7 @@ static struct {
 } t485_data;
 
 /** reverse bits in a byte. necessary for host/wire bit order switching.  */
-uint8_t bit_reverse(uint8_t b) {
+inline uint8_t bit_reverse(uint8_t b) {
 	uint8_t i, buf = 0x0;
 
 	for(i=0; i<=7; i++)
@@ -73,57 +71,31 @@ uint8_t bit_reverse(uint8_t b) {
 }
 
 /* direct hardware interfacing convenience functions
- * do what they say on the tin - see ATTiny85 datasheet for details
+ * do what they say on the tin - see relevant AVR datasheets for details
  */
 
-/** Turn timer 0 on.
- * timer0 is switched by connecting/disconnecting the prescaler
+/* timer0 is switched by connecting/disconnecting the prescaler
  * (clk_io / 8) to/from the timer0 clock.
  */
-inline void timer_on() {
-	TCCR0B |= 0b00000010;
-}
+#define TIM0_ON()	TCCR0B |= 0b00000010	/**< Turn timer 0 on. */
+#define TIM0_OFF()	TCCR0B &= 0b11111000	/**< Turn timer 0 off. */
 
-/** Turn timer 0 off. */
-inline void timer_off() {
-	TCCR0B &= 0b11111000;
-}
+/* the USI is switched by turning the entire USI and its clock on/off */
+#define USI_ON()	USICR |= 0b00010100	/**< Turn the USI on. */
+#define USI_OFF()	USICR &= 0b11000011	/**< Turn the USI off. */
 
-/** Turn the USI on.
- * the USI is switched by turning the entire USI and its clock on/off
- */
-inline void usi_on() {
-	USICR |= 0b00010100;
-}
 
-/** Turn the USI off. */
-inline void usi_off() {
-	USICR &= 0b11000011;
-}
+/* PCINT0 is switched by switching the entire pin-change interrupt. */
+#define PCINT0_ON()	GIMSK |= 0b00100000	/**< Turn pin-change interrupt 0 on */
+#define PCINT0_OFF()	GIMSK &= 0b11011111	/**< Turn pin-change interrupt 0 off */
 
-/** Turn the pin-change interrupt on.
- * This is done by switching the entire pin-change interrupt.
- */
-inline void pcint_on() {
-	GIMSK |= 0b00100000;
-}
+/* The timer interrupt is switched by setting its bit in the timer interrupt mask. */
+#define TIM0INT_ON()	TIMSK |= 0b00000001	/**< Turn the timer interrupt on. */
+#define TIM0INT_OFF()	TIMSK &= 0b11111110	/** turn the timer interrupt off. */
 
-/** Turn the pin-change interrupt off. */
-inline void pcint_off() {
-	GIMSK &= 0b11011111;
-}
 
-/** Turn the timer interrupt on.
- * This is done by setting its bit in the timer interrupt mask.
- */
-inline void timint_on() {
-	TIMSK |= 0b00000001;
-}
-
-/** turn the timer interrupt off. */
-inline void timint_off() {
-	TIMSK &= 0b11111110;
-}
+/* load a counter value into the USI counter. */
+#define USICOUNTER(n)	USISR = (USISR & 0b11110000) | n
 
 /* interface functions */
 /** Start a transmission.
@@ -132,18 +104,18 @@ inline void timint_off() {
  * pin-change interrupt off so we don't get distracted by seeing our own
  * data.
  */
-void t485_begin_transmission() {
+void begin_transmission() {
 	DEN_PORT |= _BV(DEN);
-	pcint_off();
+	PCINT0_OFF();
 }
 
 /** End a transmission.
  * This will return the bus to high-impedance mode and turn the pin-
  * change interrupt back on.
  */
-void t485_end_transmission() {
+void end_transmission() {
 	DEN_PORT &= ~_BV(DEN);
-	pcint_on();
+	PCINT0_ON();
 }
 
 /** Send a single byte.
@@ -151,29 +123,18 @@ void t485_end_transmission() {
  * driver. Make sure to call the begin_transmission function before
  * this so the data appears on the bus as well.
  */
-void t485_send_byte(uint8_t b) {
-	b = bit_reverse(b);
-
+void send_byte(uint8_t b) {
 	USIDR = (b >> 1);
-	USISR = T485_XMIT_SEED;
+	USICOUNTER(T485_XMIT_SEED);
 
 	t485_data.buf = (b << 4) | 0x0F;
 	t485_data.state = T485_STATE_XMIT1;
 
-	usi_on();
-	timer_on();
+	USI_ON();
+	TIM0_ON();
 }
 
-void tiny485(struct hw_interface *hw_if) {
-	/* keep local copy of callback struct */
-	t485_data.hw_if = hw_if;
-
-	/* (u_* structs have already been filled in by upper layer) */
-
-	hw_if->d_begin_transmission	= &t485_begin_transmission;
-	hw_if->d_end_transmission	= &t485_end_transmission;
-	hw_if->d_send_byte		= &t485_send_byte;
-
+void tiny485_init() {
 	/* set state */
 #ifdef REQUIRE_SYNC
 	t485_data.state = T485_STATE_INIT1;	/* start hunting for init sequence */
@@ -182,9 +143,9 @@ void tiny485(struct hw_interface *hw_if) {
 #endif
 
 	/* initialise the pins we use */
-	USI_DDR |= _BV(DO);	/* DO  = output */
+	USI_DDR |=  _BV(DO);	/* DO  = output */
 	USI_DDR &= ~_BV(DI);	/* DI  = input */
-	DEN_DDR |= _BV(DEN);	/* DEN = output */
+	DEN_DDR |=  _BV(DEN);	/* DEN = output */
 
 	/* initialise timer */
 	TCCR0A = 0b00000010;		/* CTC mode */
@@ -216,11 +177,11 @@ ISR(PCINT0_vect) {
 				/* start bit detected! sync the timer - sample 1/2 bit length later */
 				TCNT0 = T485_BIT_TIMER / 2;
 				t485_data.state = T485_STATE_RECV;
-				USISR = T485_RECV_SEED;	/* wait for 16-7 = 9 bits (start bit + a byte) */
+				USICOUNTER(T485_RECV_SEED);	/* wait for 16-7 = 9 bits (start bit + a byte) */
 
-				pcint_off();
-				timer_on();
-				usi_on();
+				PCINT0_OFF();
+				TIM0_ON();
+				USI_ON();
 			}
 			break;
 
@@ -247,7 +208,7 @@ ISR(TIM0_COMPA_vect) {
 				t485_data.state = T485_STATE_IDLE;
 
 				/* notify the layer above */
-				(*(t485_data.hw_if->u_sync_received))(t485_data.hw_if->c_data);
+				sync_received();
 			}
 			break;
 
@@ -267,31 +228,31 @@ ISR(USI_OVF_vect) {
 	switch(t485_data.state) {
 		case T485_STATE_XMIT1:
 			USISR |= _BV(USIOIF);	/* clear overflow flag */
-			USIDR = t485_data.buf;	/* ...or send another byte */
-			USISR = T485_XMIT_SEED;
+			USIDR  = t485_data.buf;	/* ...or send another byte */
+			USICOUNTER(T485_XMIT_SEED);
 			t485_data.state = T485_STATE_XMIT2;
 			break;
 
 		case T485_STATE_XMIT2:
 				USISR |= _BV(USIOIF);	/* clear overflow flag */
-				usi_off();
-				timer_off();		/* ...stop transmitting... */
+				USI_OFF();
+				TIM0_OFF();		/* ...stop transmitting... */
 				t485_data.state = T485_STATE_IDLE;
 
 				/* ...and notify the layer above... */
 				sei();
-				(*(t485_data.hw_if->u_byte_sent))(t485_data.hw_if->c_data);
+				byte_sent();
 				break;
 
 		case T485_STATE_RECV:
 			/* if we're receiving, we need to handle the received byte */
-			usi_off();
-			timer_off();
+			USI_OFF();
+			TIM0_OFF();
 			t485_data.state = T485_STATE_IDLE;
 
 			/* load USI buffer into buf */
 			t485_data.buf = USIBR;
-			pcint_on();
+			PCINT0_OFF();
 
 			/* notify higher layer */
 			sei();
@@ -299,7 +260,7 @@ ISR(USI_OVF_vect) {
 			switch(USIBR) {
 				case T485_SYNC_BYTE:
 					/* it's a sync, so pass it on as one */
-					(*(t485_data.hw_if->u_sync_received))(t485_data.hw_if->c_data);
+					sync_received();
 					break;
 
 				case T485_ESCAPE_BYTE:
@@ -312,21 +273,21 @@ ISR(USI_OVF_vect) {
 						/* we're in escape mode, determine which byte to send up */
 						switch(USIBR) {
 							case T485_ESCAPED_SYNC:
-								(*(t485_data.hw_if->u_byte_received))(T485_SYNC_BYTE, t485_data.hw_if->c_data);
+								byte_received(T485_SYNC_BYTE);
 								break;
 
 							case T485_ESCAPED_ESCAPE:
-								(*(t485_data.hw_if->u_byte_received))(T485_ESCAPE_BYTE, t485_data.hw_if->c_data);
+								byte_received(T485_ESCAPE_BYTE);
 								break;
 
 							default:
 								/* regular data: this shouldn't happen here, but notify higher layer anyway */
-								(*(t485_data.hw_if->u_byte_received))(USIBR, t485_data.hw_if->c_data);
+								byte_received(USIBR);
 								break;
 						}
 					} else {
 						/* no escape, regular data - notify higher layer */
-						(*(t485_data.hw_if->u_byte_received))(USIBR, t485_data.hw_if->c_data);
+						byte_received(USIBR);
 					}
 					break;
 			}

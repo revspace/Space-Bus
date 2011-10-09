@@ -1,7 +1,5 @@
 include ../../Makefile.inc
 
-# CFLAGS	:= -Os -Wall -Wextra
-
 all : tiny485.o
 
 clean :

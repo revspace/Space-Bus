@@ -8,6 +8,8 @@ all:
 clean:
 	make -C lib clean
 	make -C application clean
+	rm -Rf doc
 
-docs:
+doc:
+	mkdir -p doc
 	doxygen Doxyfile
