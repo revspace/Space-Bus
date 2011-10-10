@@ -1,10 +1,9 @@
-CC	:= avr-gcc
-CFLAGS	:= -Os -Wall -Wextra
+include ../../Makefile.inc
 
 all : sblp.o
 
 clean :
 	rm -f sblp.o
 
-sblp.o : sblp.c sblp.h
+sblp.o : sblp.c
 	$(CC) $(CFLAGS) -c -o sblp.o sblp.c

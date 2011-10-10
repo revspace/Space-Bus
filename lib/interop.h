@@ -6,7 +6,9 @@
 
 #include "inttypes.h"
 
-/** \todo redocument */
+/* hw layer */
+extern void hw_init();
+
 extern void byte_received(uint8_t b);	/**< called when the HW layer receives a byte */
 extern void byte_sent();			/**< called when the HW layer has sent a byte */
 extern void sync_received();			/**< called when the HW layer sees the synchronisation sequence */
@@ -15,17 +17,14 @@ extern void begin_transmission();		/**< called when the link layer wishes to sta
 extern void end_transmission();		/**< called when the link layer wishes to end a (potentially multi-byte) transmission. */
 extern void send_byte(uint8_t b);		/**< called when the link layer wishes to send a single byte (as part of a transmission). */
 
-/** \todo redocument */
-struct frame {
-	uint16_t length;
-	uint8_t *payload;
-} ;
 
-extern void frame_received(struct frame f);
-extern void frame_sent();
+/* sblp layer */
+extern void sblp_init();
 
-extern void send_frame(struct frame f);
-extern void recv_frame();
+extern void frame_received(uint8_t *frame);	/**< the given zero-terminated string has been received as a frame */
+extern void frame_sent();			/**< the previous frame has been sent */
+
+extern void send_frame(uint8_t *frame);	/**< send the given zero-terminated string as a frame */
 
 #define _INTEROP_H
 #endif
