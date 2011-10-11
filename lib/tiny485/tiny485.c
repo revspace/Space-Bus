@@ -10,9 +10,6 @@
  *	\li Synchronising to the bus on start-up
  *	\li Escaping the synchronisation and escape bytes
  *
- * \todo the decision for uart-mode transmission has not been
- * finalised. Make sure this code is correct when it has.
- *
  * \todo there must be a nicer way to do bus synchronisation...
  */
 
@@ -58,6 +55,7 @@ static struct {
 
 	uint8_t flags;			/**< internal flags. Mostly used for keeping track of escape states. */
 	uint8_t buf;			/**< buffer for second half of byte */
+	uint8_t escapebuf;		/**< buffer for actual character after escape */
 } t485_data;
 
 /** reverse bits in a byte. necessary for host/wire bit order switching.  */
@@ -73,6 +71,10 @@ inline uint8_t bit_reverse(uint8_t b) {
 /* direct hardware interfacing convenience functions
  * do what they say on the tin - see relevant AVR datasheets for details
  */
+
+/* process a character into the first or second xmit bytes -- see AVR307 */
+#define FIRST_XMIT_BYTE(b)	 ((b) >> 1)
+#define SECOND_XMIT_BYTE(b)	(((b) << 4) | 0x0F)
 
 /* timer0 is switched by connecting/disconnecting the prescaler
  * (clk_io / 8) to/from the timer0 clock.
@@ -95,7 +97,7 @@ inline uint8_t bit_reverse(uint8_t b) {
 
 
 /* load a counter value into the USI counter. */
-#define USICOUNTER(n)	USISR = (USISR & 0b11110000) | n
+#define USICOUNTER(n)	USISR = ((USISR & 0b11110000) | (n))
 
 /* interface functions */
 /** Start a transmission.
@@ -124,10 +126,30 @@ void end_transmission() {
  * this so the data appears on the bus as well.
  */
 void send_byte(uint8_t b) {
-	USIDR = (b >> 1);
-	USICOUNTER(T485_XMIT_SEED);
+	switch(b) {
+		case T485_SYNC_BYTE:
+			t485_data.flags |= T485_FLAG_ESCAPE;
+			t485_data.buf = T485_ESCAPED_SYNC;
 
-	t485_data.buf = (b << 4) | 0x0F;
+			USIDR = FIRST_XMIT_BYTE(T485_ESCAPE_BYTE);
+			break;
+
+		case T485_ESCAPE_BYTE:
+			t485_data.flags |= T485_FLAG_ESCAPE;
+			t485_data.buf = T485_ESCAPED_ESCAPE;
+			
+			USIDR = FIRST_XMIT_BYTE(T485_ESCAPE_BYTE);
+			break;
+
+		default:
+			t485_data.buf = b;
+			
+			USIDR = FIRST_XMIT_BYTE(b);
+			break;
+
+	}
+
+	USICOUNTER(T485_XMIT_SEED);
 	t485_data.state = T485_STATE_XMIT1;
 
 	USI_ON();
@@ -225,23 +247,36 @@ ISR(TIM0_COMPA_vect) {
  * layer above via the appropriate struct hw_interface members.
  */
 ISR(USI_OVF_vect) {
+	USISR |= _BV(USIOIF);	/* clear overflow flag */
+
 	switch(t485_data.state) {
 		case T485_STATE_XMIT1:
-			USISR |= _BV(USIOIF);	/* clear overflow flag */
-			USIDR  = t485_data.buf;	/* ...or send another byte */
+			if(t485_data.flags & T485_FLAG_ESCAPE)
+				USIDR  = SECOND_XMIT_BYTE(T485_ESCAPE_BYTE);	/* send another byte of escape */
+			else
+				USIDR  = SECOND_XMIT_BYTE(t485_data.buf);		/* send another byte of data */
+
 			USICOUNTER(T485_XMIT_SEED);
 			t485_data.state = T485_STATE_XMIT2;
 			break;
 
 		case T485_STATE_XMIT2:
-				USISR |= _BV(USIOIF);	/* clear overflow flag */
-				USI_OFF();
-				TIM0_OFF();		/* ...stop transmitting... */
-				t485_data.state = T485_STATE_IDLE;
+				if(t485_data.flags & T485_FLAG_ESCAPE) {
+					/* if we were escaping something, send another byte */
+					USIDR  = FIRST_XMIT_BYTE(t485_data.buf);
+					USICOUNTER(T485_XMIT_SEED);
+					t485_data.state = T485_STATE_XMIT1;
+					t485_data.flags &= ~T485_FLAG_ESCAPE;	/* clear escape */
+				} else {
+					/* otherwise, go back to idle */
+					USI_OFF();
+					TIM0_OFF();
+					t485_data.state = T485_STATE_IDLE;
 
-				/* ...and notify the layer above... */
-				sei();
-				byte_sent();
+					/* and notify the layer above */
+					sei();
+					byte_sent();
+				}
 				break;
 
 		case T485_STATE_RECV:
@@ -254,12 +289,11 @@ ISR(USI_OVF_vect) {
 			t485_data.buf = USIBR;
 			PCINT0_OFF();
 
-			/* notify higher layer */
-			sei();
-
+			/* handle received byte */
 			switch(USIBR) {
 				case T485_SYNC_BYTE:
 					/* it's a sync, so pass it on as one */
+					sei();
 					sync_received();
 					break;
 
@@ -273,10 +307,12 @@ ISR(USI_OVF_vect) {
 						/* we're in escape mode, determine which byte to send up */
 						switch(USIBR) {
 							case T485_ESCAPED_SYNC:
+								sei();
 								byte_received(T485_SYNC_BYTE);
 								break;
 
 							case T485_ESCAPED_ESCAPE:
+								sei();
 								byte_received(T485_ESCAPE_BYTE);
 								break;
 
