@@ -12,13 +12,6 @@
 
 #define SBLP_BUFSIZE	50
 
-struct sblp_header {
-	uint8_t	type;
-	uint16_t	length;
-	uint8_t	dest;
-	uint8_t	src;
-} ;
-
 /** internal data for the protocol stack */
 struct {
 	enum {
@@ -74,24 +67,24 @@ void byte_received(uint8_t b) {
 					sblp_data.header.type = b;
 					sblp_data.index++;
 					break;
-				
+
 				case 2:		/* length MSB */
 					sblp_data.header.length = b<<8;
 					sblp_data.index++;
 					break;
-				
+
 				case 3:		/* length LSB */
 					sblp_data.header.length += (b-7);
 					sblp_data.index++;
 					break;
-				
+
 				case 4:		/* destination address */
 					sblp_data.header.dest = b;
 					sblp_data.index++;
 					break;
-				
+
 				case 5:		/* source address */
-					sblp_data.header.src = b;					
+					sblp_data.header.src = b;
 
 					/* end of header -- move to payload */
 					sblp_data.state = SBLP_STATE_RECV_PAYLOAD;
@@ -101,6 +94,7 @@ void byte_received(uint8_t b) {
 			break;
 
 		case SBLP_STATE_IGNORE:
+			/* count down the bytes until we're done */
 			if(sblp_data.header.length-- == 0)
 				sblp_data.state = SBLP_STATE_IDLE;
 			break;
@@ -115,27 +109,27 @@ void byte_sent() {
 	switch(sblp_data.state) {
 		case SBLP_STATE_XMIT_HEADER:
 			switch(sblp_data.index) {
-				case 0:
+				case 0:	/* sync */
 					
 					break;
 
-				case 1:
+				case 1:	/* type */
 					
 					break;
 
-				case 2:
+				case 2:	/* length MSB */
 					
 					break;
 
-				case 3:
+				case 3:	/* length LSB */
 					
 					break;
 
-				case 4:
+				case 4:	/* destination address */
 					
 					break;
 
-				case 5:
+				case 5:	/* source address */
 					
 					break;
 			} ;
@@ -149,13 +143,18 @@ void byte_sent() {
 
 
 /* functions called by layer above */
-uint8_t send_frame(uint8_t *frame, uint16_t length) {
+extern uint8_t send_frame(struct sblp_header *header, uint8_t *payload) {
 	if(sblp_data.state == SBLP_STATE_IDLE) {
 		/* fill in header and send frame */
-		sblp_data.header.length = length;
+		sblp_data.header.type	= header->type;
+		sblp_data.header.length = header->length;
+		sblp_data.header.src	= header->src;
+		sblp_data.header.dest	= header->dest;
 
-		sblp_data.xmit_payload = frame;
+		sblp_data.xmit_payload = payload;
 		sblp_data.index = 0;
+
+		begin_transmission();
 		sblp_data.state = SBLP_STATE_XMIT_HEADER;
 
 		return 1;
