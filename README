@@ -1,25 +1,39 @@
-Space bus
-=========
+== SPACEBUS ==
 
-Documentation:
+== ABOUT ==
+The SpaceBus protocol stack is a collection of several protocols intended for
+medium-scale communication networks involving mostly small, embedded devices
+such as microcontrollers. It is designed to be mostly small and simple, though
+with enough power for simple automation tasks.
 
-https://revspace.nl/RevelationSpace/SpaceBus
+Further documentation and the specification can be found at:
 
-Files
-=====
+	https://revspace.nl/RevelationSpace/SpaceBus
 
-scratch/		scratch files, experiments, sketches and what have you
-lib/sbp/		portable SBP library
-lib/avr485/		AVR driver for RS485, connects libsbp to the wire
-lib/pic485/		PIC driver for RS485, connects libsbp to the wire
-lib/ip/			IP driver, connects libsdp to (unix) ip sockets
-infra/arbiter/		bus arbiter code
 
-Todo
-====
+== FILES ==
+
+application/			stand-alone software
+	elrc/			the Electronic Lift Room Controller example
+	tests/			library test programs
+
+hw/				hardware designs
+
+infra/				infrastructure software
+	arbiter/		the SBLP arbiter code
+
+lib/				library code
+	sblp/			SpaceBus Link Protocol
+	tiny485/		ATTiny byte-level framing & rs485 driver
+
+scratch/			scratch files, experiments, sketches
+
+
+== TODO ==
 
 - write SBP (Space Bus Protocol) specification
 - document wiring/pinout
+- implement software
 - design hardware:
    - psu
    - arbiters
@@ -27,5 +41,5 @@ Todo
    - ethernet<->space bus gateway/router
    - 'T-junction'
 
-and more...
+- and more...
 
