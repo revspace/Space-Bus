@@ -27,9 +27,9 @@
 #define DO		PB6
 #define DEN		PB7	/**< the data enable pin on the DEN_PORT */
 
-#define PCINT0_vect      _VECTOR(2)
-#define TIM0_COMPA_vect  _VECTOR(5)
-#define USI_OVF_vect     _VECTOR(17)
+#define PCINT0_vect      _VECTOR(0x0B)
+#define TIM0_COMPA_vect  _VECTOR(0x0D)
+#define USI_OVF_vect     _VECTOR(0x10)
 
 #define USIBR _SFR_IO8(0x000)
 #define USIBR0 0

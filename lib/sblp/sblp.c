@@ -26,13 +26,13 @@ struct {
 
 	struct sblp_header header;
 	
-	uint8_t	 recv_payload[SBLP_BUFSIZE];
-	uint8_t	*xmit_payload;
+	uint8_t		 recv_payload[SBLP_BUFSIZE];
+	uint8_t		*xmit_payload;
 	uint16_t	 index;
 } sblp_data;
 
 void sblp_init() {
-	sblp_data.state = SBLP_STATE_INIT;
+	sblp_data.state = SBLP_STATE_IDLE;
 }
 
 /* functions called by layer below */
@@ -74,7 +74,7 @@ void byte_received(uint8_t b) {
 					break;
 
 				case 3:		/* length LSB */
-					sblp_data.header.length += (b-7);
+					sblp_data.header.length += b;
 					sblp_data.index++;
 					break;
 
@@ -93,9 +93,18 @@ void byte_received(uint8_t b) {
 			}
 			break;
 
+		case SBLP_STATE_RECV_PAYLOAD:
+			sblp_data.recv_payload[sblp_data.index++] = b;
+			if(sblp_data.index > sblp_data.header.length) {
+				sblp_data.state = SBLP_STATE_IDLE;
+
+				frame_received(&sblp_data.header, sblp_data.recv_payload);
+			}
+			break;
+
 		case SBLP_STATE_IGNORE:
 			/* count down the bytes until we're done */
-			if(sblp_data.header.length-- == 0)
+			if(++sblp_data.index > sblp_data.header.length)
 				sblp_data.state = SBLP_STATE_IDLE;
 			break;
 
@@ -110,29 +119,48 @@ void byte_sent() {
 		case SBLP_STATE_XMIT_HEADER:
 			switch(sblp_data.index) {
 				case 0:	/* sync */
-					
+					send_sync();
+					sblp_data.index++;
 					break;
 
 				case 1:	/* type */
-					
+					send_byte(sblp_data.header.type);
+					sblp_data.index++;
 					break;
 
 				case 2:	/* length MSB */
-					
+					send_byte((sblp_data.header.length >> 8) & 0xFF);
+					sblp_data.index++;
 					break;
 
 				case 3:	/* length LSB */
-					
+					send_byte(sblp_data.header.length & 0xFF);
+					sblp_data.index++;
+
+					/* TODO: we know how long the frame is now, so we can ignore if we need to */
 					break;
 
 				case 4:	/* destination address */
-					
+					send_byte(sblp_data.header.dest);
+					sblp_data.index++;
 					break;
 
 				case 5:	/* source address */
-					
+					send_byte(sblp_data.header.src);
+
+					/* done sending header -- start sending payload */
+					sblp_data.index = 0;
+					sblp_data.state = SBLP_STATE_XMIT_PAYLOAD;
 					break;
 			} ;
+			break;			
+
+		case SBLP_STATE_XMIT_PAYLOAD:
+			send_byte(sblp_data.xmit_payload[sblp_data.index++]);
+			if(sblp_data.index > sblp_data.header.length) {
+				frame_sent();
+				sblp_data.state = SBLP_STATE_IDLE;
+			}
 			break;
 
 		default:

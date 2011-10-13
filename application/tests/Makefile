@@ -2,18 +2,24 @@ include ../../Makefile.inc
 
 CFLAGS	+= -I../../lib/ -I../../lib/tiny485
 
-all : t485-test.hex
+all : t485-test.hex sblp-test.hex
 
 clean :
 	rm -f *.hex *.o *.elf
 
-%.o:	%.c ../../lib/tiny485/tiny485.h
+t485-test.o:	t485-test.c ../../lib/interop.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-t485-test-new.elf: t485_test_new.o ../../lib/tiny485/tiny485.o
+sblp-test.o:	sblp-test.c ../../lib/interop.h
+	$(CC) $(CFLAGS) -c -o $@ $<
 
-%.elf:	%.o ../../lib/tiny485/tiny485.o
-	$(CC) $(CFLAGS) -o $@ $< ../../lib/tiny485/tiny485.o
+
+t485-test.elf:	t485-test.o ../../lib/tiny485/tiny485.o
+	$(CC) $(CFLAGS) -o t485-test.elf t485-test.o ../../lib/tiny485/tiny485.o
+
+sblp-test.elf:	sblp-test.o ../../lib/tiny485/tiny485.o ../../lib/sblp/sblp.o
+	$(CC) $(CFLAGS) -o sblp-test.elf sblp-test.o ../../lib/tiny485/tiny485.o ../../lib/sblp/sblp.o
+
 
 %.hex:	%.elf
 	size $<

@@ -20,6 +20,9 @@
 #include "tiny485_pin.h"
 #include "tiny485.h"
 
+/* debug */
+#undef REQUIRE_SYNC	/* normally defined, only undefine for testing purposes */
+
 /* timing info */
 #define T485_BIT_TIMER 104	/**< length of one bit in timer cycles */
 
@@ -137,7 +140,7 @@ void send_byte(uint8_t b) {
 		case T485_ESCAPE_BYTE:
 			t485_data.flags |= T485_FLAG_ESCAPE;
 			t485_data.buf = T485_ESCAPED_ESCAPE;
-			
+
 			USIDR = FIRST_XMIT_BYTE(T485_ESCAPE_BYTE);
 			break;
 
@@ -156,7 +159,18 @@ void send_byte(uint8_t b) {
 	TIM0_ON();
 }
 
-void tiny485_init() {
+void send_sync() {
+	USIDR = FIRST_XMIT_BYTE(T485_SYNC_BYTE);
+	t485_data.buf = T485_SYNC_BYTE;
+	
+	USICOUNTER(T485_XMIT_SEED);
+	t485_data.state = T485_STATE_XMIT1;
+
+	USI_ON();
+	TIM0_ON();
+}
+
+void hw_init() {
 	/* set state */
 #ifdef REQUIRE_SYNC
 	t485_data.state = T485_STATE_INIT1;	/* start hunting for init sequence */

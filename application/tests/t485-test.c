@@ -9,7 +9,6 @@
 #include <util/delay.h>
 
 #include "interop.h"
-#include "tiny485.h"
 
 #define IO_PORT PORTB
 #define IO_PIN	 PINB
@@ -55,11 +54,11 @@ void send(uint8_t b) {
 int main(void) {
 	uint8_t i = 0;
 
-	tiny485_init();
+	hw_init();
 
 	/* set up I/O */
 	IO_DDR |=  _BV(LED1_PIN) | _BV(LED2_PIN);	/* LEDs */
-	IO_DDR &= ~_BV(SW_PIN);		/* switch */
+	IO_DDR &= ~_BV(SW_PIN);						/* switch */
 
 	/* enable pull-up */
 	IO_PORT |= _BV(SW_PIN);

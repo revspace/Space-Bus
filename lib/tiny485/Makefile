@@ -2,11 +2,8 @@ include ../../Makefile.inc
 
 all : tiny485.o
 
-clean :
+clean : 
 	rm -f tiny485.o
 
 tiny485.o:	tiny485.c tiny485.h tiny485_pin.h
 		$(CC) $(CFLAGS) -c -o tiny485.o tiny485.c
-
-
-

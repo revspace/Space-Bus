@@ -4,8 +4,6 @@
 
 #ifndef _TINY485_H
 
-#undef REQUIRE_SYNC	/* normally defined, only undefine for testing purposes */
-
 /** initialise the tiny485 layer */
 void tiny485_init();
 
