@@ -159,6 +159,8 @@ void byte_sent() {
 				frame_sent();
 				sblp_data.state = SBLP_STATE_IDLE;
 			}
+
+			end_transmission();
 			break;
 
 		default:
