@@ -71,37 +71,6 @@ inline uint8_t bit_reverse(uint8_t b) {
 	return buf;
 }
 
-/* direct hardware interfacing convenience functions
- * do what they say on the tin - see relevant AVR datasheets for details
- */
-
-/* process a character into the first or second xmit bytes -- see AVR307 */
-#define FIRST_XMIT_BYTE(b)	 ((b) >> 1)
-#define SECOND_XMIT_BYTE(b)	(((b) << 4) | 0x0F)
-
-/* timer0 is switched by connecting/disconnecting the prescaler
- * (clk_io / 8) to/from the timer0 clock.
- */
-#define TIM0_ON()	TCCR0B |= 0x02	/* 0b00000010 */	/**< Turn timer 0 on. */
-#define TIM0_OFF()	TCCR0B &= 0xF8	/* 0b11111000 */	/**< Turn timer 0 off. */
-
-/* the USI is switched by turning the entire USI and its clock on/off */
-#define USI_ON()	USICR |= 0x14	/* 0b00010100 */	/**< Turn the USI on. */
-#define USI_OFF()	USICR &= 0xC3	/* 0b11000011 */	/**< Turn the USI off. */
-
-
-/* PCINT0 is switched by switching the entire pin-change interrupt. */
-#define PCINT0_ON()	GIMSK |= 0x20	/* 0b00100000 */	/**< Turn pin-change interrupt 0 on */
-#define PCINT0_OFF()	GIMSK &= 0xDF	/* 0b11011111 */	/**< Turn pin-change interrupt 0 off */
-
-/* The timer interrupt is switched by setting its bit in the timer interrupt mask. */
-#define TIM0INT_ON()	TIMSK |= 0x01	/* 0b00000001 */	/**< Turn the timer interrupt on. */
-#define TIM0INT_OFF()	TIMSK &= 0xFE	/* 0b11111110 */	/**< Turn the timer interrupt off. */
-
-
-/* load a counter value into the USI counter. */
-#define USICOUNTER(n)	USISR = ((USISR & 0xF0) | (n))
-
 /* interface functions */
 /** Start a transmission.
  * This will tell the line driver to take the bus off high-impedance
@@ -192,8 +161,10 @@ void hw_init() {
 	USICR = 0x50 /* 0b01010000 */;
 
 	/* initialise pin-change interrupt */
-	PCMSK = 0x01 /* 0b00000001 */;		/* enable for PCINT0 (DI) pin */
-	GIMSK = 0x20 /* 0b00100000 */;		/* enable in general */
+	//PCMSK = 0x01 /* 0b00000001 */;		/* enable for PCINT0 (DI) pin */
+	PCINTDI_ON();
+	//GIMSK = 0x20 /* 0b00100000 */;		/* enable in general */
+	PCINT0_ON();
 	sei();				/* turn on interrupts */
 }
 
