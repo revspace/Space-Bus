@@ -4,9 +4,9 @@
 
 #include "interop.h"
 
-const uint8_t test_msg[] = "Hello, world!";
-#define TEST_MSG_LEN	13
 
+uint8_t test_data[2] = {0, 0};
+#define TEST_DATA_LEN 2
 volatile uint8_t sent = 0;
 
 void frame_sent() {
@@ -23,13 +23,20 @@ int main(void) {
 	sblp_init();
 	
 	head.type = 1;
-	head.length = TEST_MSG_LEN + HEADER_LENGTH;
+	head.length = TEST_DATA_LEN + HEADER_LENGTH;
 
 	while(1) {
+		if(test_data[0]) {
+			test_data[0] = 0;
+			test_data[1] = 1;
+		} else {
+			test_data[0] = 1;
+			test_data[1] = 0;
+		}
 		sent = 0;
-		if(send_frame(&head, test_msg))
+		if(send_frame(&head, test_data))
 			while(!sent) _delay_ms(50);
 
-		_delay_ms(500);
+		_delay_ms(1000);
 	}
 }
