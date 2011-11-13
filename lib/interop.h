@@ -22,10 +22,10 @@ extern void send_sync();			/**< called when the link layer wishes to send a sync
 /* sblp data structures */
 /** a frame header */
 struct sblp_header {
-	uint8_t	type;
+	uint8_t		type;
 	uint16_t	length;
-	uint8_t	dest;
-	uint8_t	src;
+	uint8_t		dest;
+	uint8_t		src;
 } ;
 
 #define HEADER_LENGTH 5		/**< length of the SBLP header */

@@ -8,10 +8,10 @@
  * \todo many things, needs more implementation
  */
 
+#include <avr/io.h>
 #include "../interop.h"
 
 #define SBLP_BUFSIZE	50
-
 /** internal data for the protocol stack */
 struct {
 	enum {
@@ -178,11 +178,12 @@ uint8_t send_frame(struct sblp_header *header, uint8_t *payload) {
 		sblp_data.header.dest	= header->dest;
 
 		sblp_data.xmit_payload = payload;
-		sblp_data.index = 0;
+		sblp_data.index = 1;
 
 		begin_transmission();
 		sblp_data.state = SBLP_STATE_XMIT_HEADER;
 
+		send_sync();
 		return 1;
 	} else {
 		/* can't send frame when receiving, syncing etc. */
