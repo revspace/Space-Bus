@@ -27,22 +27,22 @@
 #define T485_BIT_TIMER 104	/**< length of one bit in timer cycles */
 
 /* USI seeds */
-#define T485_RECV_SEED	0x07	/**< receive seed:  shift in 16-7=9 bits (start + data) */
-#define T485_XMIT_SEED	0x0B	/**< transmit seed: shift out 16-11=5 bits (half a byte + start/stop) */
+#define T485_RECV_SEED	((uint8_t) 0x07)			/**< receive seed:  shift in 16-7=9 bits (start + data) */
+#define T485_XMIT_SEED	((uint8_t) 0x0B)			/**< transmit seed: shift out 16-11=5 bits (half a byte + start/stop) */
 
 /* bit constants */
-#define T485_INIT1	0b01111111	/**< first part of init sequence */
-#define T485_INIT2	0b11000000	/**< second part of init sequence */
+#define T485_INIT1	((uint8_t) 0x7F /* 0b01111111 */)	/**< first part of init sequence */
+#define T485_INIT2	((uint8_t) 0xC0 /* 0b11000000 */)	/**< second part of init sequence */
 
 /* data bytes with special meanings */
-#define T485_SYNC_BYTE		0xFF		/**< The synchronisation byte */
-#define T485_ESCAPE_BYTE	0x55		/**< Escape byte for syncs in messages */
+#define T485_SYNC_BYTE		((uint8_t) 0xFF)		/**< The synchronisation byte */
+#define T485_ESCAPE_BYTE	((uint8_t) 0x55)		/**< Escape byte for syncs in messages */
 
-#define T485_ESCAPED_SYNC	0x00		/**< A synchronisation byte when escaped */
-#define T485_ESCAPED_ESCAPE	0x01		/**< An escape byte when escaped */
+#define T485_ESCAPED_SYNC	((uint8_t) 0x00)		/**< A synchronisation byte when escaped */
+#define T485_ESCAPED_ESCAPE	((uint8_t) 0x01)		/**< An escape byte when escaped */
 
 /* flags for field below */
-#define T485_FLAG_ESCAPE	0x01
+#define T485_FLAG_ESCAPE	((uint8_t) 0x01)
 
 static struct {
 	enum {
@@ -82,25 +82,25 @@ inline uint8_t bit_reverse(uint8_t b) {
 /* timer0 is switched by connecting/disconnecting the prescaler
  * (clk_io / 8) to/from the timer0 clock.
  */
-#define TIM0_ON()	TCCR0B |= 0b00000010	/**< Turn timer 0 on. */
-#define TIM0_OFF()	TCCR0B &= 0b11111000	/**< Turn timer 0 off. */
+#define TIM0_ON()	TCCR0B |= 0x02	/* 0b00000010 */	/**< Turn timer 0 on. */
+#define TIM0_OFF()	TCCR0B &= 0xF8	/* 0b11111000 */	/**< Turn timer 0 off. */
 
 /* the USI is switched by turning the entire USI and its clock on/off */
-#define USI_ON()	USICR |= 0b00010100	/**< Turn the USI on. */
-#define USI_OFF()	USICR &= 0b11000011	/**< Turn the USI off. */
+#define USI_ON()	USICR |= 0x14	/* 0b00010100 */	/**< Turn the USI on. */
+#define USI_OFF()	USICR &= 0xC3	/* 0b11000011 */	/**< Turn the USI off. */
 
 
 /* PCINT0 is switched by switching the entire pin-change interrupt. */
-#define PCINT0_ON()	GIMSK |= 0b00100000	/**< Turn pin-change interrupt 0 on */
-#define PCINT0_OFF()	GIMSK &= 0b11011111	/**< Turn pin-change interrupt 0 off */
+#define PCINT0_ON()	GIMSK |= 0x20	/* 0b00100000 */	/**< Turn pin-change interrupt 0 on */
+#define PCINT0_OFF()	GIMSK &= 0xDF	/* 0b11011111 */	/**< Turn pin-change interrupt 0 off */
 
 /* The timer interrupt is switched by setting its bit in the timer interrupt mask. */
-#define TIM0INT_ON()	TIMSK |= 0b00000001	/**< Turn the timer interrupt on. */
-#define TIM0INT_OFF()	TIMSK &= 0b11111110	/** turn the timer interrupt off. */
+#define TIM0INT_ON()	TIMSK |= 0x01	/* 0b00000001 */	/**< Turn the timer interrupt on. */
+#define TIM0INT_OFF()	TIMSK &= 0xFE	/* 0b11111110 */	/**< Turn the timer interrupt off. */
 
 
 /* load a counter value into the USI counter. */
-#define USICOUNTER(n)	USISR = ((USISR & 0b11110000) | (n))
+#define USICOUNTER(n)	USISR = ((USISR & 0xF0) | (n))
 
 /* interface functions */
 /** Start a transmission.
@@ -184,16 +184,16 @@ void hw_init() {
 	DEN_DDR |=  _BV(DEN);	/* DEN = output */
 
 	/* initialise timer */
-	TCCR0A = 0b00000010;		/* CTC mode */
-	TCCR0B = 0b00000010;		/* prescaler = 8 */
+	TCCR0A = 0x02 /* 0b00000010 */;		/* CTC mode */
+	TCCR0B = 0x02 /* 0b00000010 */;		/* prescaler = 8 */
 	OCR0A  = T485_BIT_TIMER;	/* compare match every bit length - this clocks the USI */
 
 	/* initialise USI */
-	USICR = 0b01010000;
+	USICR = 0x50 /* 0b01010000 */;
 
 	/* initialise pin-change interrupt */
-	PCMSK = 0b00000001;		/* enable for PCINT0 (DI) pin */
-	GIMSK = 0b00100000;		/* enable in general */
+	PCMSK = 0x01 /* 0b00000001 */;		/* enable for PCINT0 (DI) pin */
+	GIMSK = 0x20 /* 0b00100000 */;		/* enable in general */
 	sei();				/* turn on interrupts */
 }
 

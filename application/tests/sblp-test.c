@@ -4,8 +4,8 @@
 
 #include "interop.h"
 
-#define TEST_MSG		((uint8_t) "hello, world")
-#define TEST_MSG_LEN	12
+const uint8_t test_msg[] = "Hello, world!";
+#define TEST_MSG_LEN	13
 
 volatile uint8_t sent = 0;
 
@@ -14,7 +14,7 @@ void frame_sent() {
 }
 
 void frame_received(struct sblp_header *header, uint8_t *payload) {
-
+	/* empty for now */
 }
 
 int main(void) {
@@ -27,7 +27,7 @@ int main(void) {
 
 	while(1) {
 		sent = 0;
-		if(send_frame(&head, TEST_MSG))
+		if(send_frame(&head, test_msg))
 			while(!sent) _delay_ms(50);
 
 		_delay_ms(500);

@@ -74,7 +74,7 @@ void byte_received(uint8_t b) {
 					break;
 
 				case 3:		/* length LSB */
-					sblp_data.header.length += b;
+					sblp_data.header.length |= b;
 					sblp_data.index++;
 					break;
 
@@ -136,8 +136,6 @@ void byte_sent() {
 				case 3:	/* length LSB */
 					send_byte(sblp_data.header.length & 0xFF);
 					sblp_data.index++;
-
-					/* TODO: we know how long the frame is now, so we can ignore if we need to */
 					break;
 
 				case 4:	/* destination address */
@@ -171,7 +169,7 @@ void byte_sent() {
 
 
 /* functions called by layer above */
-extern uint8_t send_frame(struct sblp_header *header, uint8_t *payload) {
+uint8_t send_frame(struct sblp_header *header, uint8_t *payload) {
 	if(sblp_data.state == SBLP_STATE_IDLE) {
 		/* fill in header and send frame */
 		sblp_data.header.type	= header->type;
